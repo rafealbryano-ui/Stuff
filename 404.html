@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Redirecting...</title>
   <script>
-    // Get the path from the URL (e.g., /login, /signup)
     const path = window.location.pathname;
-    // If it's not a file (no .html extension), try adding .html
-    if (!path.includes('.')) {
-      const newPath = path + '.html';
-      window.location.replace(newPath);
+    
+    if (!path.includes('.') && path !== '/') {
+      window.location.replace(path + '.html');
     }
   </script>
 </head>
