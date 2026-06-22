@@ -18,23 +18,9 @@
       padding: 40px 20px;
     }
 
-    .brand {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .brand h1 {
-      font-size: 32px;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: -0.5px;
-    }
-
-    .brand p {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.4);
-      margin-top: 6px;
-    }
+    .brand { text-align: center; margin-bottom: 32px; }
+    .brand h1 { font-size: 32px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+    .brand p { font-size: 13px; color: rgba(255, 255, 255, 0.4); margin-top: 6px; }
 
     .card {
       width: 100%;
@@ -45,16 +31,8 @@
       padding: 28px 24px;
     }
 
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 6px;
-    }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; }
 
     .input-wrap {
       display: flex;
@@ -64,11 +42,7 @@
       border-radius: 7px;
       overflow: hidden;
     }
-
-    .input-wrap:focus-within {
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
+    .input-wrap:focus-within { border-color: rgba(255, 255, 255, 0.3); }
     .input-wrap input {
       flex: 1;
       background: transparent;
@@ -79,10 +53,7 @@
       font-size: 14px;
       font-family: inherit;
     }
-
-    .input-wrap input::placeholder {
-      color: rgba(255, 255, 255, 0.15);
-    }
+    .input-wrap input::placeholder { color: rgba(255, 255, 255, 0.15); }
 
     .show-btn {
       background: none;
@@ -94,10 +65,7 @@
       padding: 0 12px;
       height: 40px;
     }
-
-    .show-btn:hover {
-      color: rgba(255, 255, 255, 0.65);
-    }
+    .show-btn:hover { color: rgba(255, 255, 255, 0.65); }
 
     .btn-create {
       width: 100%;
@@ -112,26 +80,24 @@
       cursor: pointer;
       margin-top: 4px;
     }
+    .btn-create:hover { background: #e0e0e0; }
 
-    .btn-create:hover {
-      background: #e0e0e0;
-    }
+    .footer { text-align: center; margin-top: 18px; font-size: 13px; color: rgba(255, 255, 255, 0.35); }
+    .footer a { color: #5b8ef0; text-decoration: none; font-weight: 500; }
+    .footer a:hover { text-decoration: underline; }
 
-    .footer {
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
       text-align: center;
-      margin-top: 18px;
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.35);
     }
-
-    .footer a {
-      color: #5b8ef0;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .footer a:hover {
-      text-decoration: underline;
+    .prefill-hint {
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+      margin-top: 4px;
+      text-align: center;
     }
   </style>
 </head>
@@ -146,14 +112,15 @@
     <div class="field">
       <label for="username">Username</label>
       <div class="input-wrap">
-        <input type="text" id="username" name="username" autocomplete="username" />
+        <input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" />
       </div>
+      <div class="prefill-hint" id="prefillHint"></div>
     </div>
 
     <div class="field">
       <label for="password">Password</label>
       <div class="input-wrap">
-        <input type="password" id="password" name="password" autocomplete="new-password" />
+        <input type="password" id="password" name="password" autocomplete="new-password" placeholder="Create a password" />
         <button class="show-btn" type="button" onclick="toggle('password', this)">Show</button>
       </div>
     </div>
@@ -161,12 +128,13 @@
     <div class="field">
       <label for="confirm">Confirm Password</label>
       <div class="input-wrap">
-        <input type="password" id="confirm" name="confirm" autocomplete="new-password" />
+        <input type="password" id="confirm" name="confirm" autocomplete="new-password" placeholder="Confirm your password" />
         <button class="show-btn" type="button" onclick="toggle('confirm', this)">Show</button>
       </div>
     </div>
 
-    <button class="btn-create" type="button">Create account</button>
+    <div class="error-msg" id="signupError">Please fill in all fields correctly.</div>
+    <button class="btn-create" id="signupBtn">Create account</button>
   </div>
 
   <div class="footer">
@@ -184,7 +152,70 @@
         btn.textContent = 'Show';
       }
     }
-  </script>
 
+    // --- Pre-fill username from claim ---
+    const claimed = sessionStorage.getItem('mailserver_claim');
+    const usernameInput = document.getElementById('username');
+    const hint = document.getElementById('prefillHint');
+
+    if (claimed) {
+      usernameInput.value = claimed;
+      hint.textContent = '✓ Username pre-filled from claim';
+      hint.style.color = 'rgba(91, 142, 240, 0.6)';
+    }
+
+    // --- Signup logic ---
+    document.getElementById('signupBtn').addEventListener('click', function() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      const error = document.getElementById('signupError');
+
+      // Validate
+      if (!username || !password || !confirm) {
+        error.textContent = 'Please fill in all fields.';
+        error.style.display = 'block';
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+        error.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
+        error.style.display = 'block';
+        return;
+      }
+
+      if (password.length < 6) {
+        error.textContent = 'Password must be at least 6 characters.';
+        error.style.display = 'block';
+        return;
+      }
+
+      if (password !== confirm) {
+        error.textContent = 'Passwords do not match.';
+        error.style.display = 'block';
+        return;
+      }
+
+      // Save user
+      const users = JSON.parse(localStorage.getItem('mailserver_users') || '{}');
+      if (users[username]) {
+        error.textContent = 'Username already taken.';
+        error.style.display = 'block';
+        return;
+      }
+
+      users[username] = { password, created: Date.now() };
+      localStorage.setItem('mailserver_users', JSON.stringify(users));
+
+      // Set session
+      sessionStorage.setItem('mailserver_session', JSON.stringify({ username, loggedIn: true }));
+
+      // Clear claim
+      sessionStorage.removeItem('mailserver_claim');
+
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
+    });
+  </script>
 </body>
 </html>
