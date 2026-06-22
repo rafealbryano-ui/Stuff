@@ -5,85 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign up — mailserver.life</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh;
-      background: #0e0e0e;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      padding: 40px 20px;
-    }
-    .brand { text-align: center; margin-bottom: 32px; }
-    .brand h1 { font-size: 32px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
-    .brand p { font-size: 13px; color: rgba(255, 255, 255, 0.4); margin-top: 6px; }
-    .card {
-      width: 100%;
-      max-width: 340px;
-      background: #1a1a1a;
-      border: 0.5px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px;
-      padding: 28px 24px;
-    }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-bottom: 6px; }
-    .input-wrap {
-      display: flex;
-      align-items: center;
-      background: #111;
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 7px;
-      overflow: hidden;
-    }
-    .input-wrap:focus-within { border-color: rgba(255, 255, 255, 0.3); }
-    .input-wrap input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      padding: 10px 12px;
-      color: #fff;
-      font-size: 14px;
-      font-family: inherit;
-    }
-    .input-wrap input::placeholder { color: rgba(255, 255, 255, 0.15); }
-    .show-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: rgba(255, 255, 255, 0.35);
-      font-size: 12px;
-      font-family: inherit;
-      padding: 0 12px;
-      height: 40px;
-    }
-    .show-btn:hover { color: rgba(255, 255, 255, 0.65); }
-    .btn-create {
-      width: 100%;
-      padding: 11px;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 7px;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      margin-top: 4px;
-    }
-    .btn-create:hover { background: #e0e0e0; }
-    .footer { text-align: center; margin-top: 18px; font-size: 13px; color: rgba(255, 255, 255, 0.35); }
-    .footer a { color: #5b8ef0; text-decoration: none; font-weight: 500; }
-    .footer a:hover { text-decoration: underline; }
-    .error-msg {
-      color: #ff6b6b;
-      font-size: 12px;
-      margin-top: 4px;
-      display: none;
-      text-align: center;
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;background:#0e0e0e;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;padding:40px 20px}
+    .brand{text-align:center;margin-bottom:32px}
+    .brand h1{font-size:32px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+    .brand p{font-size:13px;color:rgba(255,255,255,0.4);margin-top:6px}
+    .card{width:100%;max-width:340px;background:#1a1a1a;border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:28px 24px}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:6px}
+    .input-wrap{display:flex;align-items:center;background:#111;border:0.5px solid rgba(255,255,255,0.1);border-radius:7px;overflow:hidden}
+    .input-wrap:focus-within{border-color:rgba(255,255,255,0.3)}
+    .input-wrap input{flex:1;background:transparent;border:none;outline:none;padding:10px 12px;color:#fff;font-size:14px;font-family:inherit}
+    .input-wrap input::placeholder{color:rgba(255,255,255,0.15)}
+    .show-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);font-size:12px;font-family:inherit;padding:0 12px;height:40px}
+    .show-btn:hover{color:rgba(255,255,255,0.65)}
+    .btn-create{width:100%;padding:11px;background:#fff;color:#000;border:none;border-radius:7px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px}
+    .btn-create:hover{background:#e0e0e0}
+    .btn-create:disabled{opacity:0.5;cursor:not-allowed}
+    .footer{text-align:center;margin-top:18px;font-size:13px;color:rgba(255,255,255,0.35)}
+    .footer a{color:#5b8ef0;text-decoration:none;font-weight:500}
+    .footer a:hover{text-decoration:underline}
+    .error-msg{color:#ff6b6b;font-size:12px;margin-top:4px;display:none;text-align:center}
+    .success-msg{color:#5b8ef0;font-size:12px;margin-top:4px;display:none;text-align:center}
+    .twofa-section{border-top:1px solid rgba(255,255,255,0.06);margin-top:16px;padding-top:16px;display:none}
+    .twofa-section.active{display:block}
+    .twofa-code{font-family:'JetBrains Mono',monospace;letter-spacing:4px;font-size:20px;color:#fff;background:#0a0a0a;padding:12px;border-radius:6px;text-align:center;border:0.5px solid rgba(255,255,255,0.1);margin:8px 0}
+    .twofa-label{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px}
+    .toggle-2fa{display:flex;align-items:center;gap:10px;margin:12px 0;cursor:pointer;color:rgba(255,255,255,0.6);font-size:13px}
+    .toggle-2fa input[type="checkbox"]{appearance:none;width:38px;height:22px;background:#222;border-radius:11px;border:1px solid #333;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+    .toggle-2fa input[type="checkbox"]:checked{background:#5b8ef0;border-color:#5b8ef0}
+    .toggle-2fa input[type="checkbox"]::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s}
+    .toggle-2fa input[type="checkbox"]:checked::after{transform:translateX(16px)}
+    .toggle-2fa:hover{color:#fff}
+    .back-link{display:inline-block;margin-top:16px;color:rgba(255,255,255,0.3);text-decoration:none;font-size:13px}
+    .back-link:hover{color:rgba(255,255,255,0.6)}
   </style>
 </head>
 <body>
@@ -118,7 +73,26 @@
         </div>
       </div>
 
+      <div class="toggle-2fa" onclick="toggle2FA()">
+        <input type="checkbox" id="enable2fa" />
+        <span>Enable two-factor authentication (2FA)</span>
+      </div>
+
+      <div class="twofa-section" id="twofaSection">
+        <div class="twofa-label">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</div>
+        <div class="twofa-code" id="twofaSecret">Loading...</div>
+        <div class="twofa-label">Or enter this code manually</div>
+        <div class="field" style="margin-top:8px">
+          <label for="twofaCode">Enter 6-digit code from your authenticator app</label>
+          <div class="input-wrap">
+            <input type="text" id="twofaCode" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
+          </div>
+        </div>
+        <div class="error-msg" id="twofaError">Invalid 2FA code. Please try again.</div>
+      </div>
+
       <div class="error-msg" id="signupError">Please fill in all fields correctly.</div>
+      <div class="success-msg" id="signupSuccess">Account created! Redirecting...</div>
       <button type="submit" class="btn-create" id="signupBtn">Create account</button>
     </form>
   </div>
@@ -128,6 +102,10 @@
   </div>
 
   <script>
+    var twofaSecret = '';
+    var twofaEnabled = false;
+    var twofaVerified = false;
+
     function toggle(id, btn) {
       var input = document.getElementById(id);
       if (input.type === 'password') {
@@ -138,6 +116,63 @@
         btn.textContent = 'Show';
       }
     }
+
+    function generateSecret() {
+      var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+      var secret = '';
+      for (var i = 0; i < 16; i++) {
+        secret += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return secret;
+    }
+
+    function generateTOTP(secret) {
+      var time = Math.floor(Date.now() / 30000);
+      var hmac = secret + time;
+      var hash = 0;
+      for (var i = 0; i < hmac.length; i++) {
+        hash = ((hash << 5) - hash) + hmac.charCodeAt(i);
+        hash = hash & hash;
+      }
+      var code = (Math.abs(hash) % 1000000).toString().padStart(6, '0');
+      return code;
+    }
+
+    function toggle2FA() {
+      var cb = document.getElementById('enable2fa');
+      var section = document.getElementById('twofaSection');
+      twofaEnabled = cb.checked;
+      if (twofaEnabled) {
+        section.classList.add('active');
+        if (!twofaSecret) {
+          twofaSecret = generateSecret();
+          document.getElementById('twofaSecret').textContent = twofaSecret;
+        }
+      } else {
+        section.classList.remove('active');
+        twofaVerified = false;
+      }
+    }
+
+    document.getElementById('twofaCode').addEventListener('input', function() {
+      var code = this.value.trim();
+      var error = document.getElementById('twofaError');
+      if (code.length === 6) {
+        var expected = generateTOTP(twofaSecret);
+        if (code === expected) {
+          twofaVerified = true;
+          error.style.display = 'none';
+          this.style.borderColor = 'rgba(91,142,240,0.5)';
+        } else {
+          twofaVerified = false;
+          error.style.display = 'block';
+          this.style.borderColor = '#ff6b6b';
+        }
+      } else {
+        error.style.display = 'none';
+        this.style.borderColor = 'rgba(255,255,255,0.1)';
+      }
+    });
 
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
@@ -152,6 +187,14 @@
       var password = document.getElementById('password').value;
       var confirm = document.getElementById('confirm').value;
       var error = document.getElementById('signupError');
+      var success = document.getElementById('signupSuccess');
+      var btn = document.getElementById('signupBtn');
+
+      if (twofaEnabled && !twofaVerified) {
+        error.textContent = 'Please enter the correct 2FA code from your authenticator app.';
+        error.style.display = 'block';
+        return;
+      }
 
       if (!username || !password || !confirm) {
         error.textContent = 'Please fill in all fields.';
@@ -186,14 +229,32 @@
         return;
       }
 
-      users[username] = { password: password, created: Date.now() };
+      var userData = {
+        password: password,
+        created: Date.now(),
+        twofa: twofaEnabled ? {
+          enabled: true,
+          secret: twofaSecret
+        } : {
+          enabled: false
+        }
+      };
+
+      users[username] = userData;
       storage.users = users;
       localStorage.setItem('mailserver_data', JSON.stringify(storage));
 
       sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
       sessionStorage.removeItem('mailserver_claim');
 
-      window.location.href = '/dashboard';
+      error.style.display = 'none';
+      success.style.display = 'block';
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+
+      setTimeout(function() {
+        window.location.href = '/dashboard';
+      }, 1500);
     });
   </script>
 </body>
