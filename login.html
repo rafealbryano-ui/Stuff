@@ -117,6 +117,11 @@
       background: #e0e0e0;
     }
 
+    .btn-signin:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .footer {
       text-align: center;
       margin-top: 18px;
@@ -146,6 +151,52 @@
     .forgot a:hover {
       color: #fff;
     }
+
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+      text-align: center;
+    }
+
+    .success-msg {
+      color: #5b8ef0;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+      text-align: center;
+    }
+
+    .twofa-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin-top: 16px;
+      padding-top: 16px;
+      display: none;
+    }
+
+    .twofa-section.active {
+      display: block;
+    }
+
+    .twofa-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 6px;
+    }
+
+    .twofa-code {
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 4px;
+      font-size: 20px;
+      color: #fff;
+      background: #0a0a0a;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      margin: 8px 0;
+    }
   </style>
 </head>
 <body>
@@ -156,22 +207,34 @@
   </div>
 
   <div class="card">
-    <div class="field">
-      <label for="username">Username</label>
-      <div class="input-wrap">
-        <input type="text" id="username" name="username" autocomplete="username" />
+    <form id="loginForm" method="POST" action="/dashboard">
+      <div class="field">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" required />
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label for="password">Password</label>
-      <div class="input-wrap">
-        <input type="password" id="password" name="password" autocomplete="current-password" />
-        <button class="show-btn" type="button" onclick="toggle('password', this)">Show</button>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input type="password" id="password" name="password" autocomplete="current-password" placeholder="Enter your password" required />
+          <button class="show-btn" type="button" onclick="toggle('password', this)">Show</button>
+        </div>
       </div>
-    </div>
 
-    <button class="btn-signin" type="button">Sign in</button>
+      <div class="twofa-section" id="twofaSection">
+        <div class="twofa-label">Enter your 2FA code from your authenticator app</div>
+        <div class="input-wrap">
+          <input type="text" id="twofaCode" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
+        </div>
+        <div class="error-msg" id="twofaError">Invalid 2FA code. Please try again.</div>
+      </div>
+
+      <div class="error-msg" id="loginError">Invalid username or password.</div>
+      <div class="success-msg" id="loginSuccess">Logging in...</div>
+      <button type="submit" class="btn-signin" id="loginBtn">Sign in</button>
+    </form>
   </div>
 
   <div class="footer">
@@ -181,7 +244,7 @@
 
   <script>
     function toggle(id, btn) {
-      const input = document.getElementById(id);
+      var input = document.getElementById(id);
       if (input.type === 'password') {
         input.type = 'text';
         btn.textContent = 'Hide';
@@ -189,6 +252,100 @@
         input.type = 'password';
         btn.textContent = 'Show';
       }
+    }
+
+    function getUsers() {
+      try {
+        var raw = localStorage.getItem('mailserver_data');
+        if (!raw) return {};
+        var data = JSON.parse(raw);
+        return data.users || {};
+      } catch(e) { return {}; }
+    }
+
+    function generateTOTP(secret) {
+      var time = Math.floor(Date.now() / 30000);
+      var hmac = secret + time;
+      var hash = 0;
+      for (var i = 0; i < hmac.length; i++) {
+        hash = ((hash << 5) - hash) + hmac.charCodeAt(i);
+        hash = hash & hash;
+      }
+      var code = (Math.abs(hash) % 1000000).toString().padStart(6, '0');
+      return code;
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var username = document.getElementById('username').value.trim();
+      var password = document.getElementById('password').value;
+      var twofaCode = document.getElementById('twofaCode').value.trim();
+      var error = document.getElementById('loginError');
+      var success = document.getElementById('loginSuccess');
+      var btn = document.getElementById('loginBtn');
+      var twofaSection = document.getElementById('twofaSection');
+      var twofaError = document.getElementById('twofaError');
+
+      error.style.display = 'none';
+      success.style.display = 'none';
+      twofaError.style.display = 'none';
+
+      if (!username || !password) {
+        error.textContent = 'Please enter your username and password.';
+        error.style.display = 'block';
+        return;
+      }
+
+      var users = getUsers();
+
+      if (!users[username]) {
+        error.textContent = 'Invalid username or password.';
+        error.style.display = 'block';
+        return;
+      }
+
+      var user = users[username];
+
+      if (user.password !== password) {
+        error.textContent = 'Invalid username or password.';
+        error.style.display = 'block';
+        return;
+      }
+
+      if (user.twofa && user.twofa.enabled) {
+        if (!twofaCode || twofaCode.length !== 6) {
+          twofaSection.classList.add('active');
+          twofaError.textContent = 'Please enter your 6-digit 2FA code.';
+          twofaError.style.display = 'block';
+          return;
+        }
+
+        var expected = generateTOTP(user.twofa.secret);
+        if (twofaCode !== expected) {
+          twofaSection.classList.add('active');
+          twofaError.textContent = 'Invalid 2FA code. Please try again.';
+          twofaError.style.display = 'block';
+          return;
+        }
+      }
+
+      success.style.display = 'block';
+      success.textContent = 'Logging in...';
+      btn.disabled = true;
+
+      sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+
+      setTimeout(function() {
+        window.location.href = '/dashboard';
+      }, 800);
+    });
+
+    // Auto-fill username from claim if coming from homepage
+    var claimed = sessionStorage.getItem('mailserver_claim');
+    if (claimed) {
+      document.getElementById('username').value = claimed;
+      sessionStorage.removeItem('mailserver_claim');
     }
   </script>
 
