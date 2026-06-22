@@ -21,7 +21,7 @@ a:hover{text-decoration:underline}
 .header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;border-bottom:1px solid var(--ms-border);background:var(--ms-bg);position:sticky;top:0;z-index:100}
 .logo{font-family:var(--ms-mono);font-size:15px;font-weight:700;color:var(--ms-text)}
 .logo span{color:var(--ms-accent)}
-.header-nav{display:flex;gap:8px}
+.header-nav{display:flex;gap:8px;align-items:center}
 .btn{font-family:var(--ms-sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s}
 .btn-outline{background:transparent;border:1px solid var(--ms-border);color:var(--ms-text)}
 .btn-outline:hover{border-color:var(--ms-border-hover);background:#1f1f1f}
@@ -29,6 +29,8 @@ a:hover{text-decoration:underline}
 .btn-primary:hover{background:#3d6aee}
 .btn-danger{background:transparent;border:1px solid var(--ms-danger);color:var(--ms-danger)}
 .btn-danger:hover{background:rgba(226,75,74,.1)}
+.btn-success{background:var(--ms-success);border:1px solid var(--ms-success);color:#fff}
+.btn-success:hover{background:#158a62}
 .layout{display:flex;min-height:calc(100vh - 48px)}
 .sidebar{width:200px;min-width:200px;border-right:1px solid var(--ms-border);padding:16px 0;background:var(--ms-bg)}
 .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--ms-muted);cursor:pointer;transition:color .15s,background .15s}
@@ -126,16 +128,16 @@ textarea{resize:vertical;min-height:80px}
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-section">Mail</div>
-    <div class="sidebar-item active" onclick="switchMain('inbox');setSidebar(this)">
+    <div class="sidebar-item active" id="sidebar-inbox" onclick="switchMain('inbox');setSidebar(this)">
       <i class="ti ti-inbox" aria-hidden="true"></i> Inbox
       <span id="unread-badge" style="margin-left:auto;background:var(--ms-accent);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px">0</span>
     </div>
-    <div class="sidebar-item" onclick="switchMain('sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</div>
-    <div class="sidebar-item" onclick="switchMain('tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</div>
-    <div class="sidebar-item" onclick="switchMain('trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</div>
+    <div class="sidebar-item" id="sidebar-sent" onclick="switchMain('sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</div>
+    <div class="sidebar-item" id="sidebar-tempmail" onclick="switchMain('tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</div>
+    <div class="sidebar-item" id="sidebar-trash" onclick="switchMain('trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</div>
     <div class="sidebar-section">Account</div>
-    <div class="sidebar-item" onclick="switchMain('settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</div>
-    <div class="sidebar-item" onclick="switchMain('files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</div>
+    <div class="sidebar-item" id="sidebar-settings" onclick="switchMain('settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</div>
+    <div class="sidebar-item" id="sidebar-files" onclick="switchMain('files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</div>
   </aside>
 
   <main class="main" id="main-area"></main>
@@ -149,9 +151,26 @@ var D = 'mailserver.life';
 var USERNAME = '';
 var USER_ID = 0;
 var USERS_LIST = [];
+var DISPLAY_NAME = '';
+var BIO_TEXT = '';
+var CURRENT_TAB = 'inbox';
+var SETTINGS_TAB = 'account';
+var USER_DATA = {};
 
 function getSession() {
-  try { return JSON.parse(sessionStorage.getItem('mailserver_session')) || null; } catch(e) { return null; }
+  try {
+    var raw = localStorage.getItem('mailserver_session');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function setSession(username) {
+  localStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+}
+
+function clearSession() {
+  localStorage.removeItem('mailserver_session');
 }
 
 function getUsers() {
@@ -163,6 +182,15 @@ function getUsers() {
   } catch(e) { return {}; }
 }
 
+function saveUsers(users) {
+  try {
+    var raw = localStorage.getItem('mailserver_data');
+    var data = raw ? JSON.parse(raw) : { users: {}, version: 'XL!KD_USERAKFLAP' };
+    data.users = users;
+    localStorage.setItem('mailserver_data', JSON.stringify(data));
+  } catch(e) {}
+}
+
 function getUserIndex(username) {
   var users = getUsers();
   var keys = Object.keys(users);
@@ -170,6 +198,24 @@ function getUserIndex(username) {
     if (keys[i] === username) return i + 1;
   }
   return 0;
+}
+
+function loadUserData() {
+  var users = getUsers();
+  if (users[USERNAME]) {
+    USER_DATA = users[USERNAME] || {};
+    DISPLAY_NAME = USER_DATA.displayName || USERNAME;
+    BIO_TEXT = USER_DATA.bio || '';
+  }
+}
+
+function saveUserData() {
+  var users = getUsers();
+  if (users[USERNAME]) {
+    users[USERNAME].displayName = DISPLAY_NAME;
+    users[USERNAME].bio = BIO_TEXT;
+    saveUsers(users);
+  }
 }
 
 function initUser() {
@@ -181,6 +227,15 @@ function initUser() {
   USERNAME = session.username;
   USER_ID = getUserIndex(USERNAME);
   USERS_LIST = Object.keys(getUsers());
+  loadUserData();
+  var savedTab = localStorage.getItem('mailserver_last_tab');
+  if (savedTab) {
+    CURRENT_TAB = savedTab;
+  }
+  var savedSettingsTab = localStorage.getItem('mailserver_last_settings_tab');
+  if (savedSettingsTab) {
+    SETTINGS_TAB = savedSettingsTab;
+  }
 }
 
 function showToast(msg){
@@ -195,22 +250,26 @@ function setSidebar(el){
 }
 
 function logout() {
-  sessionStorage.removeItem('mailserver_session');
-  sessionStorage.removeItem('mailserver_claim');
+  clearSession();
+  localStorage.removeItem('mailserver_last_tab');
+  localStorage.removeItem('mailserver_last_settings_tab');
   window.location.href = '/';
 }
 
 var msgs = [];
 
 function switchMain(s){
+  CURRENT_TAB = s;
+  localStorage.setItem('mailserver_last_tab', s);
   var el=document.getElementById('main-area');
   if(s==='inbox') el.innerHTML=renderInbox();
   else if(s==='settings') el.innerHTML=renderSettings();
   else if(s==='sent') el.innerHTML=renderEmpty('ti-send','Sent','No sent messages yet.');
   else if(s==='tempmail') el.innerHTML=renderTempmail();
   else if(s==='trash') el.innerHTML=renderEmpty('ti-trash','Trash','Trash is empty.');
-  else if(s==='files') el.innerHTML=renderEmpty('ti-file','Files','No files uploaded.');
+  else if(s==='files') el.innerHTML=renderFiles();
   attachHandlers();
+  restoreSettingsTab();
 }
 
 function renderInbox(){
@@ -260,22 +319,59 @@ function renderTempmail(){
   '</div>';
 }
 
+function renderFiles(){
+  return '<div style="padding:28px 32px">'+
+    '<div class="page-title">Files</div>'+
+    '<p class="page-sub" style="margin-top:4px;margin-bottom:20px">Your uploaded files. Max 10MB per file.</p>'+
+    '<div class="card">'+
+      '<div class="card-title">Upload a file</div>'+
+      '<div class="card-sub">Drag and drop or click to upload.</div>'+
+      '<div style="border:2px dashed var(--ms-border);border-radius:8px;padding:40px;text-align:center;color:var(--ms-muted);cursor:pointer" onclick="showToast(\'File picker coming soon\')">'+
+        '<i class="ti ti-cloud-upload" style="font-size:32px;display:block;margin-bottom:8px"></i>'+
+        'Click to upload or drag & drop'+
+      '</div>'+
+      '<button class="btn btn-primary" style="margin-top:12px" onclick="showToast(\'Upload dialog coming soon\')">Choose file</button>'+
+    '</div>'+
+    '<div class="empty-inbox"><i class="ti ti-file"></i><div style="font-size:15px;font-weight:600;color:var(--ms-text);margin-bottom:6px">No files uploaded</div><div>Upload your first file above.</div></div>'+
+  '</div>';
+}
+
 function renderSettings(){
   return '<div class="page-header">'+
     '<div class="page-title">Settings</div>'+
     '<div class="tabs">'+
-      '<div class="tab active" data-tab="account">Account</div>'+
-      '<div class="tab" data-tab="email">Email</div>'+
-      '<div class="tab" data-tab="biopage">Bio Page</div>'+
-      '<div class="tab" data-tab="usernames">Usernames</div>'+
-      '<div class="tab" data-tab="lookup">Lookup</div>'+
-      '<div class="tab" data-tab="sessions">Sessions</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='account'?'active':'')+'" data-tab="account" onclick="switchSettingsTab(\'account\',this)">Account</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='email'?'active':'')+'" data-tab="email" onclick="switchSettingsTab(\'email\',this)">Email</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='biopage'?'active':'')+'" data-tab="biopage" onclick="switchSettingsTab(\'biopage\',this)">Bio Page</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='usernames'?'active':'')+'" data-tab="usernames" onclick="switchSettingsTab(\'usernames\',this)">Usernames</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='lookup'?'active':'')+'" data-tab="lookup" onclick="switchSettingsTab(\'lookup\',this)">Lookup</div>'+
+      '<div class="tab '+(SETTINGS_TAB==='sessions'?'active':'')+'" data-tab="sessions" onclick="switchSettingsTab(\'sessions\',this)">Sessions</div>'+
     '</div>'+
   '</div>'+
-  '<div class="content" id="settings-content">'+renderTab('account')+'</div>';
+  '<div class="content" id="settings-content">'+renderSettingsTab(SETTINGS_TAB)+'</div>';
 }
 
-function renderTab(t){
+function switchSettingsTab(tab, el){
+  SETTINGS_TAB = tab;
+  localStorage.setItem('mailserver_last_settings_tab', tab);
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
+  if (el) el.classList.add('active');
+  document.getElementById('settings-content').innerHTML = renderSettingsTab(tab);
+  attachHandlers();
+}
+
+function restoreSettingsTab(){
+  var tabs = document.querySelectorAll('.tab');
+  tabs.forEach(function(t){
+    if (t.dataset.tab === SETTINGS_TAB) {
+      t.classList.add('active');
+    } else {
+      t.classList.remove('active');
+    }
+  });
+}
+
+function renderSettingsTab(t){
   if(t==='account') return renderAccount();
   if(t==='email') return renderEmail();
   if(t==='biopage') return renderBio();
@@ -289,6 +385,7 @@ function renderAccount(){
   return '<div class="card">'+
     '<div class="card-title">Account</div>'+
     '<div style="font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:4px">@' + USERNAME + '@' + D + ' · #' + USER_ID + '</div>'+
+    '<div style="font-size:13px;color:var(--ms-muted);margin-top:4px">Display name: <span style="color:var(--ms-text)">' + (DISPLAY_NAME || USERNAME) + '</span></div>'+
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Language</div>'+
@@ -302,7 +399,7 @@ function renderAccount(){
     '<div class="input-row"><input type="password" id="pw-new"><span class="input-show" onclick="togglePw(\'pw-new\',this)">Show</span></div>'+
     '<label>Confirm New Password</label>'+
     '<div class="input-row"><input type="password" id="pw-con"><span class="input-show" onclick="togglePw(\'pw-con\',this)">Show</span></div>'+
-    '<button class="btn btn-outline" style="margin-top:16px" onclick="showToast(\'Password updated\')">Update Password</button>'+
+    '<button class="btn btn-outline" style="margin-top:16px" onclick="changePassword()">Update Password</button>'+
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Two-Factor Authentication</div>'+
@@ -328,7 +425,7 @@ function renderAccount(){
     '<div class="card-title" style="color:var(--ms-danger)">Delete Account</div>'+
     '<div class="card-sub">This permanently deletes your account and all mail. Type DELETE to confirm.</div>'+
     '<input type="text" placeholder="DELETE" id="del-confirm">'+
-    '<button class="btn btn-danger" style="margin-top:12px" onclick="checkDelete()">Delete Account</button>'+
+    '<button class="btn btn-danger" style="margin-top:12px" onclick="deleteAccount()">Delete Account</button>'+
   '</div>';
 }
 
@@ -337,7 +434,7 @@ function renderEmail(){
     '<div class="card-title">Recovery Email</div>'+
     '<div class="card-sub">Used only to send a password reset link if you forget your password. Resetting via recovery email generates a new encryption key, so previously received encrypted messages become unreadable — keep your password somewhere safe if that matters to you.</div>'+
     '<label>Recovery Email</label>'+
-    '<input type="email" placeholder="you@example.com">'+
+    '<input type="email" placeholder="you@example.com" id="recovery-email">'+
     '<button class="btn btn-outline" style="margin-top:12px" onclick="showToast(\'Recovery email saved\')">Save Recovery Email</button>'+
   '</div>'+
   '<div class="card">'+
@@ -348,17 +445,19 @@ function renderEmail(){
 }
 
 function renderBio(){
+  var displayName = DISPLAY_NAME || USERNAME;
+  var bio = BIO_TEXT || '';
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
     '<div>'+
     '<div class="card">'+
       '<div class="card-title">Public Profile</div>'+
       '<div class="card-sub">Shown at ' + D + '/' + USERNAME + ' and ' + D + '/id/' + USER_ID + '.</div>'+
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
-        '<div style="width:44px;height:44px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ms-accent)">' + USERNAME[0].toUpperCase() + '</div>'+
+        '<div style="width:44px;height:44px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ms-accent)">' + (displayName[0] || USERNAME[0]).toUpperCase() + '</div>'+
         '<button class="btn btn-outline btn-sm" onclick="showToast(\'Choose a photo to upload\')">Upload photo</button>'+
       '</div>'+
-      '<label>Display Name</label><input type="text" value="' + USERNAME + '">'+
-      '<label>Bio</label><textarea placeholder="Say something about yourself…"></textarea>'+
+      '<label>Display Name</label><input type="text" id="display-name-input" value="' + displayName + '" placeholder="Your display name">'+
+      '<label>Bio</label><textarea id="bio-input" placeholder="Say something about yourself…">' + bio + '</textarea>'+
       '<label>Profile Accent Color</label>'+
       '<div class="color-row"><div class="color-swatch" style="background:#4f7cff"></div><input type="text" value="#4f7cff" style="width:100px"></div>'+
       '<label style="margin-top:14px">Avatar Shape</label>'+
@@ -381,7 +480,7 @@ function renderBio(){
         '<div class="toggle-row"><div class="toggle"></div><span class="toggle-label">Show a "click to enter" screen</span></div>'+
         '<div class="toggle-row"><div class="toggle"></div><span class="toggle-label">Hide the view counter</span></div>'+
       '</div>'+
-      '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="showToast(\'Profile saved!\')">Save Profile</button>'+
+      '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="saveProfile()">Save Profile</button>'+
     '</div>'+
     '<div class="card">'+
       '<div class="card-title">Bio Links</div>'+
@@ -404,8 +503,8 @@ function renderBio(){
     '<div class="card">'+
       '<div class="card-title" style="margin-bottom:12px">Preview</div>'+
       '<div class="bio-preview-frame">'+
-        '<div class="bio-avatar">' + USERNAME[0].toUpperCase() + '</div>'+
-        '<div class="bio-name">' + USERNAME + '</div>'+
+        '<div class="bio-avatar">' + (displayName[0] || USERNAME[0]).toUpperCase() + '</div>'+
+        '<div class="bio-name">' + displayName + '</div>'+
         '<div class="bio-handle">@' + USERNAME + ' · ' + D + '</div>'+
         '<div class="bio-links">'+
           '<div class="bio-link-btn"><i class="ti ti-link" style="margin-right:6px"></i>My Website</div>'+
@@ -421,12 +520,12 @@ function renderBio(){
     '<div class="card" style="margin-top:0">'+
       '<div class="card-title">Profile Metadata</div>'+
       '<div class="card-sub">What shows when your link is pasted on Discord, X, iMessage, etc.</div>'+
-      '<label>Website Title</label><input type="text" value="' + USERNAME + ' · ' + D + '">'+
+      '<label>Website Title</label><input type="text" value="' + displayName + ' · ' + D + '">'+
       '<label>Website Description</label><textarea placeholder="@you — say anything. Leave blank for the default."></textarea>'+
       '<div style="margin-top:12px;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:12px">'+
         '<div style="font-size:12px;color:var(--ms-muted);margin-bottom:6px">Discord embed preview</div>'+
         '<div style="border-left:3px solid var(--ms-accent);padding-left:10px">'+
-          '<div style="font-size:13px;color:var(--ms-accent);font-weight:600">' + USERNAME + ' · ' + D + '</div>'+
+          '<div style="font-size:13px;color:var(--ms-accent);font-weight:600">' + displayName + ' · ' + D + '</div>'+
           '<div style="font-size:12px;color:var(--ms-muted);margin-top:2px">@' + USERNAME + ' on ' + D + '</div>'+
         '</div>'+
       '</div>'+
@@ -536,14 +635,6 @@ function renderSessions(){
 }
 
 function attachHandlers(){
-  document.querySelectorAll('.tab').forEach(function(t){
-    t.onclick=function(){
-      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
-      t.classList.add('active');
-      document.getElementById('settings-content').innerHTML=renderTab(t.dataset.tab);
-      attachHandlers();
-    };
-  });
   document.querySelectorAll('.seg-opt').forEach(function(o){
     o.onclick=function(){
       o.parentElement.querySelectorAll('.seg-opt').forEach(function(s){s.classList.remove('active')});
@@ -562,15 +653,58 @@ function togglePw(id,el){
   else{inp.type='password';el.textContent='Show';}
 }
 
-function checkDelete(){
-  var v=document.getElementById('del-confirm');
-  if(v&&v.value==='DELETE') showToast('Account deleted.');
-  else showToast('Type DELETE to confirm.');
+function saveProfile(){
+  var displayNameInput = document.getElementById('display-name-input');
+  var bioInput = document.getElementById('bio-input');
+  if (displayNameInput) {
+    DISPLAY_NAME = displayNameInput.value.trim() || USERNAME;
+  }
+  if (bioInput) {
+    BIO_TEXT = bioInput.value.trim();
+  }
+  saveUserData();
+  showToast('Profile saved! Display name: ' + DISPLAY_NAME);
+  var settingsContent = document.getElementById('settings-content');
+  if (settingsContent) {
+    settingsContent.innerHTML = renderSettingsTab('biopage');
+    attachHandlers();
+  }
+}
+
+function changePassword(){
+  var cur = document.getElementById('pw-cur');
+  var pw = document.getElementById('pw-new');
+  var con = document.getElementById('pw-con');
+  if (!cur || !pw || !con) { showToast('Please fill in all password fields.'); return; }
+  var users = getUsers();
+  if (!users[USERNAME]) { showToast('User not found.'); return; }
+  if (users[USERNAME].password !== cur.value) { showToast('Current password is incorrect.'); return; }
+  if (pw.value.length < 6) { showToast('New password must be at least 6 characters.'); return; }
+  if (pw.value !== con.value) { showToast('Passwords do not match.'); return; }
+  users[USERNAME].password = pw.value;
+  saveUsers(users);
+  cur.value = '';
+  pw.value = '';
+  con.value = '';
+  showToast('Password updated successfully!');
+}
+
+function deleteAccount(){
+  var v = document.getElementById('del-confirm');
+  if (!v || v.value !== 'DELETE') { showToast('Type DELETE to confirm.'); return; }
+  var users = getUsers();
+  delete users[USERNAME];
+  saveUsers(users);
+  clearSession();
+  localStorage.removeItem('mailserver_last_tab');
+  localStorage.removeItem('mailserver_last_settings_tab');
+  showToast('Account deleted.');
+  setTimeout(function(){ window.location.href = '/'; }, 1000);
 }
 
 function claimUsername(){
-  var v=document.getElementById('claim-input');
-  if(v&&v.value.length>=3) {
+  var v = document.getElementById('claim-input');
+  if(v && v.value.length >= 3) {
     var users = getUsers();
     if (users[v.value]) {
       showToast('Username "' + v.value + '" is already taken.');
@@ -579,11 +713,8 @@ function claimUsername(){
     showToast('Claimed @' + v.value + '! Mail to @' + v.value + '@' + D + ' now lands in your inbox.');
     var settingsContent = document.getElementById('settings-content');
     if (settingsContent) {
-      var activeTab = document.querySelector('.tab.active');
-      if (activeTab && activeTab.dataset.tab === 'usernames') {
-        settingsContent.innerHTML = renderTab('usernames');
-        attachHandlers();
-      }
+      settingsContent.innerHTML = renderSettingsTab('usernames');
+      attachHandlers();
     }
   } else {
     showToast('Username must be 3–32 characters.');
@@ -621,11 +752,12 @@ function doLookup(){
   }
 
   var userIndex = userList.indexOf(username) + 1;
+  var displayName = users[username].displayName || username;
   r.classList.add('show');
   r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
-    '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + username[0].toUpperCase() + '</div>'+
-    '<div><div style="font-weight:600">@' + username + '</div>'+
-    '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + username + ' · #' + userIndex + '</div></div>'+
+    '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (displayName[0] || username[0]).toUpperCase() + '</div>'+
+    '<div><div style="font-weight:600">' + displayName + '</div>'+
+    '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">@' + username + ' · ' + D + ' · #' + userIndex + '</div></div>'+
   '</div>';
 }
 
@@ -637,5 +769,6 @@ if (!USERNAME) {
 
 document.getElementById('unread-badge').textContent = 0;
 
-switchMain('inbox');
+var savedTab = localStorage.getItem('mailserver_last_tab') || 'inbox';
+switchMain(savedTab);
 </script>
