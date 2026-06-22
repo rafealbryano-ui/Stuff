@@ -111,6 +111,7 @@
       font-family: inherit;
       cursor: pointer;
       margin-top: 4px;
+      transition: background 0.15s;
     }
 
     .btn-signin:hover {
@@ -154,16 +155,16 @@
 
     .error-msg {
       color: #ff6b6b;
-      font-size: 12px;
-      margin-top: 8px;
+      font-size: 13px;
+      margin-top: 12px;
       display: none;
       text-align: center;
     }
 
     .success-msg {
       color: #5b8ef0;
-      font-size: 12px;
-      margin-top: 8px;
+      font-size: 13px;
+      margin-top: 12px;
       display: none;
       text-align: center;
     }
@@ -183,19 +184,6 @@
       font-size: 12px;
       color: rgba(255, 255, 255, 0.4);
       margin-bottom: 6px;
-    }
-
-    .twofa-code {
-      font-family: 'JetBrains Mono', monospace;
-      letter-spacing: 4px;
-      font-size: 20px;
-      color: #fff;
-      background: #0a0a0a;
-      padding: 12px;
-      border-radius: 6px;
-      text-align: center;
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      margin: 8px 0;
     }
   </style>
 </head>
@@ -228,7 +216,7 @@
         <div class="input-wrap">
           <input type="text" id="twofaCode" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
         </div>
-        <div class="error-msg" id="twofaError">Invalid 2FA code. Please try again.</div>
+        <div class="error-msg" id="twofaError" style="margin-top:4px">Invalid 2FA code. Please try again.</div>
       </div>
 
       <div class="error-msg" id="loginError">Invalid username or password.</div>
@@ -341,7 +329,6 @@
       }, 800);
     });
 
-    // Auto-fill username from claim if coming from homepage
     var claimed = sessionStorage.getItem('mailserver_claim');
     if (claimed) {
       document.getElementById('username').value = claimed;
