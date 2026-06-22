@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign in — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
       min-height: 100vh;
       background: #0e0e0e;
@@ -17,25 +18,21 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       padding: 40px 20px;
     }
-
     .brand {
       text-align: center;
       margin-bottom: 32px;
     }
-
     .brand h1 {
       font-size: 32px;
       font-weight: 700;
       color: #fff;
       letter-spacing: -0.5px;
     }
-
     .brand p {
       font-size: 13px;
       color: rgba(255, 255, 255, 0.4);
       margin-top: 6px;
     }
-
     .card {
       width: 100%;
       max-width: 340px;
@@ -44,18 +41,15 @@
       border-radius: 12px;
       padding: 28px 24px;
     }
-
     .field {
       margin-bottom: 16px;
     }
-
     .field label {
       display: block;
       font-size: 12px;
       color: rgba(255, 255, 255, 0.5);
       margin-bottom: 6px;
     }
-
     .input-wrap {
       display: flex;
       align-items: center;
@@ -64,11 +58,9 @@
       border-radius: 7px;
       overflow: hidden;
     }
-
     .input-wrap:focus-within {
       border-color: rgba(255, 255, 255, 0.3);
     }
-
     .input-wrap input {
       flex: 1;
       background: transparent;
@@ -79,11 +71,9 @@
       font-size: 14px;
       font-family: inherit;
     }
-
     .input-wrap input::placeholder {
       color: rgba(255, 255, 255, 0.15);
     }
-
     .show-btn {
       background: none;
       border: none;
@@ -94,11 +84,9 @@
       padding: 0 12px;
       height: 40px;
     }
-
     .show-btn:hover {
       color: rgba(255, 255, 255, 0.65);
     }
-
     .btn-signin {
       width: 100%;
       padding: 11px;
@@ -113,16 +101,13 @@
       margin-top: 4px;
       transition: background 0.15s;
     }
-
     .btn-signin:hover {
       background: #e0e0e0;
     }
-
     .btn-signin:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-
     .footer {
       text-align: center;
       margin-top: 18px;
@@ -132,27 +117,22 @@
       flex-direction: column;
       gap: 8px;
     }
-
     .footer a {
       color: #5b8ef0;
       text-decoration: none;
       font-weight: 500;
     }
-
     .footer a:hover {
       text-decoration: underline;
     }
-
     .forgot a {
       color: rgba(255, 255, 255, 0.5);
       font-weight: 600;
       text-decoration: none;
     }
-
     .forgot a:hover {
       color: #fff;
     }
-
     .error-msg {
       color: #ff6b6b;
       font-size: 13px;
@@ -160,30 +140,12 @@
       display: none;
       text-align: center;
     }
-
     .success-msg {
       color: #5b8ef0;
       font-size: 13px;
       margin-top: 12px;
       display: none;
       text-align: center;
-    }
-
-    .twofa-section {
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      margin-top: 16px;
-      padding-top: 16px;
-      display: none;
-    }
-
-    .twofa-section.active {
-      display: block;
-    }
-
-    .twofa-label {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.4);
-      margin-bottom: 6px;
     }
   </style>
 </head>
@@ -197,9 +159,9 @@
   <div class="card">
     <form id="loginForm">
       <div class="field">
-        <label for="username">Username</label>
+        <label for="email">Email</label>
         <div class="input-wrap">
-          <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" required />
+          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" required />
         </div>
       </div>
 
@@ -211,15 +173,7 @@
         </div>
       </div>
 
-      <div class="twofa-section" id="twofaSection">
-        <div class="twofa-label">Enter your 2FA code from your authenticator app</div>
-        <div class="input-wrap">
-          <input type="text" id="twofaCode" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
-        </div>
-        <div class="error-msg" id="twofaError" style="margin-top:4px">Invalid 2FA code. Please try again.</div>
-      </div>
-
-      <div class="error-msg" id="loginError">Invalid username or password.</div>
+      <div class="error-msg" id="loginError">Invalid email or password.</div>
       <div class="success-msg" id="loginSuccess">Logging in...</div>
       <button type="submit" class="btn-signin" id="loginBtn">Sign in</button>
     </form>
@@ -231,6 +185,19 @@
   </div>
 
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+      authDomain: "mailserver-life.firebaseapp.com",
+      projectId: "mailserver-life",
+      storageBucket: "mailserver-life.firebasestorage.app",
+      messagingSenderId: "195734676668",
+      appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+      measurementId: "G-V216FC1QMD"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
     function toggle(id, btn) {
       var input = document.getElementById(id);
       if (input.type === 'password') {
@@ -242,96 +209,46 @@
       }
     }
 
-    function getUsers() {
-      try {
-        var raw = localStorage.getItem('mailserver_data');
-        if (!raw) return {};
-        var data = JSON.parse(raw);
-        return data.users || {};
-      } catch(e) { return {}; }
-    }
-
-    function generateTOTP(secret) {
-      var time = Math.floor(Date.now() / 30000);
-      var hmac = secret + time;
-      var hash = 0;
-      for (var i = 0; i < hmac.length; i++) {
-        hash = ((hash << 5) - hash) + hmac.charCodeAt(i);
-        hash = hash & hash;
-      }
-      var code = (Math.abs(hash) % 1000000).toString().padStart(6, '0');
-      return code;
-    }
-
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
-
-      var username = document.getElementById('username').value.trim();
+      var email = document.getElementById('email').value.trim();
       var password = document.getElementById('password').value;
-      var twofaCode = document.getElementById('twofaCode').value.trim();
       var error = document.getElementById('loginError');
       var success = document.getElementById('loginSuccess');
       var btn = document.getElementById('loginBtn');
-      var twofaSection = document.getElementById('twofaSection');
-      var twofaError = document.getElementById('twofaError');
 
       error.style.display = 'none';
       success.style.display = 'none';
-      twofaError.style.display = 'none';
 
-      if (!username || !password) {
-        error.textContent = 'Please enter your username and password.';
+      if (!email || !password) {
+        error.textContent = 'Please enter your email and password.';
         error.style.display = 'block';
         return;
-      }
-
-      var users = getUsers();
-
-      if (!users[username]) {
-        error.textContent = 'Invalid username or password.';
-        error.style.display = 'block';
-        return;
-      }
-
-      var user = users[username];
-
-      if (user.password !== password) {
-        error.textContent = 'Invalid username or password.';
-        error.style.display = 'block';
-        return;
-      }
-
-      if (user.twofa && user.twofa.enabled) {
-        if (!twofaCode || twofaCode.length !== 6) {
-          twofaSection.classList.add('active');
-          twofaError.textContent = 'Please enter your 6-digit 2FA code.';
-          twofaError.style.display = 'block';
-          return;
-        }
-
-        var expected = generateTOTP(user.twofa.secret);
-        if (twofaCode !== expected) {
-          twofaSection.classList.add('active');
-          twofaError.textContent = 'Invalid 2FA code. Please try again.';
-          twofaError.style.display = 'block';
-          return;
-        }
       }
 
       success.style.display = 'block';
       success.textContent = 'Logging in...';
       btn.disabled = true;
 
-      sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-
-      setTimeout(function() {
-        window.location.href = '/dashboard';
-      }, 800);
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          var user = userCredential.user;
+          var username = user.displayName || email.split('@')[0];
+          sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+          window.location.href = '/dashboard';
+        })
+        .catch((error) => {
+          btn.disabled = false;
+          success.style.display = 'none';
+          error.textContent = 'Invalid email or password. Please try again.';
+          error.style.display = 'block';
+          console.error('Login error:', error.code, error.message);
+        });
     });
 
     var claimed = sessionStorage.getItem('mailserver_claim');
     if (claimed) {
-      document.getElementById('username').value = claimed;
+      document.getElementById('email').value = claimed + '@mailserver.life';
       sessionStorage.removeItem('mailserver_claim');
     }
   </script>
