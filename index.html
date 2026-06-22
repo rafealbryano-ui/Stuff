@@ -48,12 +48,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 3
 .stat-num{font-size:30px;font-weight:600;color:#fff;letter-spacing:-0.5px}
 .stat-num.accent{color:#5c7cfa}
 .stat-label{font-size:12px;color:#444;margin-top:4px}
-.members-scroll{padding:20px 0;border-bottom:1px solid #141414;overflow:hidden;background:#0c0c0c;position:relative;min-height:120px}
+.members-scroll{padding:20px 0;border-bottom:1px solid #141414;overflow:hidden;background:#0c0c0c;position:relative;min-height:130px;display:flex;align-items:center;justify-content:center}
 .members-scroll::before,.members-scroll::after{content:'';position:absolute;top:0;width:80px;height:100%;z-index:2;pointer-events:none}
 .members-scroll::before{left:0;background:linear-gradient(to right,#0c0c0c,transparent)}
 .members-scroll::after{right:0;background:linear-gradient(to left,#0c0c0c,transparent)}
-.members-track{display:flex;gap:10px;animation:mscroll 45s linear infinite;width:max-content;padding:0 10px}
-.members-track:hover{animation-play-state:paused}
+.members-track{display:flex;gap:10px;width:max-content;padding:0 10px}
+.members-track.animate{animation:mscroll 45s linear infinite}
+.members-track.animate:hover{animation-play-state:paused}
+@keyframes mscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .member-card{background:#111;border:1px solid #1c1c1c;border-radius:10px;padding:14px 16px;width:160px;flex-shrink:0;transition:border-color 0.2s;min-height:120px}
 .member-card:hover{border-color:#2e2e2e}
 .member-num{font-size:10px;color:#ffffff;margin-bottom:8px;font-weight:600;letter-spacing:0.5px;opacity:0.8}
@@ -61,7 +63,6 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:14px 3
 .member-name{font-size:13px;color:#555;font-weight:500;margin-bottom:2px}
 .member-handle{font-size:11px;color:#2e2e2e}
 .member-bio{font-size:11px;color:#2a2a2a;margin-top:6px}
-@keyframes mscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .features{display:grid;grid-template-columns:repeat(3,1fr);background:#141414;border-top:1px solid #141414;border-bottom:1px solid #141414}
 .feature{background:#0a0a0a;padding:30px 26px;border-right:1px solid #141414}
 .feature:last-child{border-right:none}
@@ -99,9 +100,7 @@ footer{padding:32px 32px;border-top:1px solid #141414;display:flex;justify-conte
     <a class="nav-link" href="#">Domains</a>
     <a class="nav-link" href="#" onclick="window.open('https://discord.gg/n8v8pRSMb6','_blank')">Discord</a>
   </div>
-  <div class="nav-actions" id="navActions">
-    <!-- Dynamically populated by JavaScript -->
-  </div>
+  <div class="nav-actions" id="navActions"></div>
 </nav>
 
 <div class="hero">
@@ -158,10 +157,6 @@ footer{padding:32px 32px;border-top:1px solid #141414;display:flex;justify-conte
   <div class="section-title">Claim your name on any domain</div>
   <div class="domain-pills">
     <span class="domain-pill">mailserver.life</span>
-    <span class="domain-pill">hollow.st</span>
-    <span class="domain-pill">arrancar.st</span>
-    <span class="domain-pill">noches.st</span>
-    <span class="domain-pill">see all</span>
   </div>
 </div>
 
@@ -188,190 +183,201 @@ footer{padding:32px 32px;border-top:1px solid #141414;display:flex;justify-conte
 </footer>
 
 <script>
-// --- STATE MANAGEMENT ---
+var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
+var STORAGE_KEY = 'mailserver_data';
+
+function getStorage() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { users: {}, version: ENCRYPTION_KEY };
+    var data = JSON.parse(raw);
+    if (data.version !== ENCRYPTION_KEY) {
+      return { users: {}, version: ENCRYPTION_KEY };
+    }
+    return data;
+  } catch (e) {
+    return { users: {}, version: ENCRYPTION_KEY };
+  }
+}
+
+function saveStorage(data) {
+  data.version = ENCRYPTION_KEY;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
 function getUsers() {
-  try { return JSON.parse(localStorage.getItem('mailserver_users')) || {}; } catch { return {}; }
+  return getStorage().users || {};
 }
+
 function saveUsers(users) {
-  localStorage.setItem('mailserver_users', JSON.stringify(users));
+  var data = getStorage();
+  data.users = users;
+  saveStorage(data);
 }
+
 function getSession() {
-  try { return JSON.parse(sessionStorage.getItem('mailserver_session')) || null; } catch { return null; }
+  try {
+    var raw = sessionStorage.getItem('mailserver_session');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
 }
+
 function setSession(username) {
-  sessionStorage.setItem('mailserver_session', JSON.stringify({ username, loggedIn: true }));
+  sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
 }
+
 function clearSession() {
   sessionStorage.removeItem('mailserver_session');
 }
+
 function isLoggedIn() {
-  const s = getSession();
+  var s = getSession();
   if (!s) return false;
-  const users = getUsers();
+  var users = getUsers();
   return !!users[s.username];
 }
 
-// --- NAVIGATION ---
 function updateNav() {
-  const actions = document.getElementById('navActions');
-  const loggedIn = isLoggedIn();
+  var actions = document.getElementById('navActions');
+  var loggedIn = isLoggedIn();
   if (loggedIn) {
-    const s = getSession();
-    actions.innerHTML = `
-      <a href="/dashboard" style="text-decoration:none;"><button class="btn-nav btn-dashboard">Dashboard</button></a>
-      <a href="/inbox" style="text-decoration:none;"><button class="btn-nav btn-inbox">Inbox</button></a>
-    `;
+    actions.innerHTML = '<a href="/dashboard" style="text-decoration:none;"><button class="btn-nav btn-dashboard">Dashboard</button></a><a href="/inbox" style="text-decoration:none;"><button class="btn-nav btn-inbox">Inbox</button></a>';
   } else {
-    actions.innerHTML = `
-      <a href="/login" style="text-decoration:none;"><button class="btn-nav btn-login">Log in</button></a>
-      <a href="/signup" style="text-decoration:none;"><button class="btn-nav btn-signup">Sign up</button></a>
-    `;
+    actions.innerHTML = '<a href="/login" style="text-decoration:none;"><button class="btn-nav btn-login">Log in</button></a><a href="/signup" style="text-decoration:none;"><button class="btn-nav btn-signup">Sign up</button></a>';
   }
 }
 
-// --- USER COUNT ---
 function updateUserCount() {
-  const users = getUsers();
-  const count = Object.keys(users).length;
+  var users = getUsers();
+  var count = Object.keys(users).length;
   document.getElementById('userCount').textContent = count;
   document.getElementById('userCountStat').textContent = count;
-  document.getElementById('domainCountStat').textContent = 1 + Math.floor(count / 10);
+  document.getElementById('domainCountStat').textContent = 1;
   document.getElementById('profileViewsStat').textContent = 0;
 }
 
-// --- MEMBER CARDS ---
 function renderMemberCards() {
-  const users = getUsers();
-  const usernames = Object.keys(users);
-  const track = document.getElementById('track');
+  var users = getUsers();
+  var usernames = Object.keys(users);
+  var track = document.getElementById('track');
   track.innerHTML = '';
-
-  // If no users, show nothing (empty track)
+  track.classList.remove('animate');
   if (usernames.length === 0) {
-    track.innerHTML = '';
     return;
   }
-
-  // Show users with sequential numbers starting from 1
-  // Duplicate the list for seamless infinite scroll
-  const allCards = [...usernames, ...usernames, ...usernames];
-  allCards.forEach((username, index) => {
-    const num = (index % usernames.length) + 1;
-    const c = document.createElement('div');
+  if (usernames.length === 1) {
+    var c = document.createElement('div');
     c.className = 'member-card';
-    c.innerHTML = `
-      <div class="member-num">#${num}</div>
-      <div class="member-avatar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5">
-          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-        </svg>
-      </div>
-      <div class="member-name">${username}</div>
-      <div class="member-handle">@${username}</div>
-      <div class="member-bio">No bio yet.</div>`;
+    c.innerHTML = '<div class="member-num">#1</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + usernames[0] + '</div><div class="member-handle">@' + usernames[0] + '</div><div class="member-bio">No bio yet.</div>';
     track.appendChild(c);
-  });
+    track.style.justifyContent = 'center';
+    return;
+  }
+  track.style.justifyContent = 'flex-start';
+  var allCards = usernames.concat(usernames).concat(usernames);
+  for (var i = 0; i < allCards.length; i++) {
+    var username = allCards[i];
+    var num = (i % usernames.length) + 1;
+    var c = document.createElement('div');
+    c.className = 'member-card';
+    c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + username + '</div><div class="member-handle">@' + username + '</div><div class="member-bio">No bio yet.</div>';
+    track.appendChild(c);
+  }
+  track.classList.add('animate');
 }
 
-// --- CLAIM FLOW ---
 document.getElementById('claimBtn').addEventListener('click', function() {
-  const input = document.getElementById('claimInput');
-  const error = document.getElementById('claimError');
-  const username = input.value.trim();
-
-  const valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
+  var input = document.getElementById('claimInput');
+  var error = document.getElementById('claimError');
+  var username = input.value.trim();
+  var valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
   if (!valid) {
     error.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
     error.style.display = 'block';
     return;
   }
   error.style.display = 'none';
-
-  const users = getUsers();
+  var users = getUsers();
   if (users[username]) {
     error.textContent = 'Username already taken. Try another.';
     error.style.display = 'block';
     return;
   }
-
   sessionStorage.setItem('mailserver_claim', username);
   window.location.href = '/signup';
 });
 
-// --- PARTICLE CANVAS ---
-const canvas = document.getElementById('particle-canvas');
-const ctx = canvas.getContext('2d');
-function resizeCanvas(){
+var canvas = document.getElementById('particle-canvas');
+var ctx = canvas.getContext('2d');
+function resizeCanvas() {
   canvas.width = canvas.offsetWidth;
   canvas.height = canvas.offsetHeight;
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-
-const particles = Array.from({length:70},()=>({
-  x: Math.random(),
-  y: Math.random(),
-  r: Math.random()*1.4+0.3,
-  vx: (Math.random()-0.5)*0.0003,
-  vy: (Math.random()-0.5)*0.0003,
-  pulse: Math.random()*Math.PI*2
-}));
-
-function drawParticles(){
-  const W=canvas.width, H=canvas.height;
-  if(!W||!H){requestAnimationFrame(drawParticles);return;}
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#0a0a0a';
-  ctx.fillRect(0,0,W,H);
-
-  ctx.strokeStyle='rgba(90,60,180,0.04)';
-  ctx.lineWidth=0.5;
-  for(let gx=0;gx<W;gx+=60){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
-  for(let gy=0;gy<H;gy+=60){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
-
-  const ag=ctx.createRadialGradient(W*0.75,H*0.5,0,W*0.75,H*0.5,H*0.65);
-  ag.addColorStop(0,'rgba(70,45,150,0.2)');
-  ag.addColorStop(0.5,'rgba(40,25,100,0.08)');
-  ag.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=ag;
-  ctx.fillRect(0,0,W,H);
-
-  const t=Date.now()*0.001;
-  const scanY=((t*45)%H);
-  const sl=ctx.createLinearGradient(0,scanY-20,0,scanY+3);
-  sl.addColorStop(0,'rgba(110,80,255,0)');
-  sl.addColorStop(1,'rgba(110,80,255,0.045)');
-  ctx.fillStyle=sl;
-  ctx.fillRect(0,scanY-20,W,23);
-
-  particles.forEach(p=>{
-    p.x=(p.x+p.vx+1)%1;
-    p.y=(p.y+p.vy+1)%1;
-    p.pulse+=0.018;
-    const alpha=(Math.sin(p.pulse)*0.35+0.65)*0.65;
-    ctx.beginPath();
-    ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);
-    ctx.fillStyle=`rgba(155,120,255,${alpha})`;
-    ctx.fill();
+var particles = [];
+for (var i = 0; i < 70; i++) {
+  particles.push({
+    x: Math.random(),
+    y: Math.random(),
+    r: Math.random() * 1.4 + 0.3,
+    vx: (Math.random() - 0.5) * 0.0003,
+    vy: (Math.random() - 0.5) * 0.0003,
+    pulse: Math.random() * Math.PI * 2
   });
-
-  const vg=ctx.createRadialGradient(W*0.5,H*0.5,H*0.1,W*0.5,H*0.5,H*0.8);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,0.6)');
-  ctx.fillStyle=vg;
-  ctx.fillRect(0,0,W,H);
-
+}
+function drawParticles() {
+  var W = canvas.width;
+  var H = canvas.height;
+  if (!W || !H) { requestAnimationFrame(drawParticles); return; }
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(90,60,180,0.04)';
+  ctx.lineWidth = 0.5;
+  for (var gx = 0; gx < W; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (var gy = 0; gy < H; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+  var ag = ctx.createRadialGradient(W * 0.75, H * 0.5, 0, W * 0.75, H * 0.5, H * 0.65);
+  ag.addColorStop(0, 'rgba(70,45,150,0.2)');
+  ag.addColorStop(0.5, 'rgba(40,25,100,0.08)');
+  ag.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ag;
+  ctx.fillRect(0, 0, W, H);
+  var t = Date.now() * 0.001;
+  var scanY = ((t * 45) % H);
+  var sl = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 3);
+  sl.addColorStop(0, 'rgba(110,80,255,0)');
+  sl.addColorStop(1, 'rgba(110,80,255,0.045)');
+  ctx.fillStyle = sl;
+  ctx.fillRect(0, scanY - 20, W, 23);
+  for (var j = 0; j < particles.length; j++) {
+    var p = particles[j];
+    p.x = (p.x + p.vx + 1) % 1;
+    p.y = (p.y + p.vy + 1) % 1;
+    p.pulse += 0.018;
+    var alpha = (Math.sin(p.pulse) * 0.35 + 0.65) * 0.65;
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(155,120,255,' + alpha + ')';
+    ctx.fill();
+  }
+  var vg = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.1, W * 0.5, H * 0.5, H * 0.8);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
   requestAnimationFrame(drawParticles);
 }
 drawParticles();
 
-// --- INIT ---
 updateNav();
 updateUserCount();
 renderMemberCards();
 
-// Auto-fill claim if coming from signup with a claim
-const claimed = sessionStorage.getItem('mailserver_claim');
+var claimed = sessionStorage.getItem('mailserver_claim');
 if (claimed && document.getElementById('claimInput')) {
   document.getElementById('claimInput').value = claimed;
 }
