@@ -122,6 +122,17 @@
       }
     }
 
+    function getNextUserNumber() {
+      return db.collection('users').orderBy('userNumber', 'desc').limit(1).get()
+        .then(function(snapshot) {
+          var lastNum = 0;
+          snapshot.forEach(function(doc) {
+            lastNum = doc.data().userNumber || 0;
+          });
+          return lastNum + 1;
+        });
+    }
+
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
     if (claimed) {
@@ -169,56 +180,61 @@
 
       var email = username + '@mailserver.life';
 
-      db.collection('usernames').doc(username).get().then(function(snapshot) {
-        if (snapshot.exists) {
-          error.textContent = 'Username already taken. Try another.';
-          error.style.display = 'block';
-          success.style.display = 'none';
+      db.collection('usernames').doc(username).get()
+        .then(function(snapshot) {
+          if (snapshot.exists) {
+            throw new Error('Username already taken');
+          }
+          return getNextUserNumber();
+        })
+        .then(function(userNumber) {
+          return auth.createUserWithEmailAndPassword(email, password)
+            .then(function(userCredential) {
+              var user = userCredential.user;
+              return user.updateProfile({
+                displayName: username
+              }).then(function() {
+                return db.collection('users').doc(user.uid).set({
+                  username: username,
+                  email: email,
+                  displayName: username,
+                  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                  handles: [username],
+                  primaryHandle: username,
+                  bio: 'No bio yet.',
+                  userNumber: userNumber
+                });
+              }).then(function() {
+                return db.collection('usernames').doc(username).set({
+                  uid: user.uid,
+                  claimedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                  userNumber: userNumber
+                });
+              }).then(function() {
+                saveCredentials(username, password);
+                sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+                sessionStorage.removeItem('mailserver_claim');
+                window.location.href = '/dashboard.html';
+              });
+            });
+        })
+        .catch(function(error) {
           btn.disabled = false;
-          return;
-        }
-
-        return auth.createUserWithEmailAndPassword(email, password).then(function(userCredential) {
-          var user = userCredential.user;
-          return user.updateProfile({
-            displayName: username
-          }).then(function() {
-            return db.collection('users').doc(user.uid).set({
-              username: username,
-              email: email,
-              displayName: username,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              handles: [username],
-              primaryHandle: username,
-              bio: 'No bio yet.'
-            });
-          }).then(function() {
-            return db.collection('usernames').doc(username).set({
-              uid: user.uid,
-              claimedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }).then(function() {
-            saveCredentials(username, password);
-            sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-            sessionStorage.removeItem('mailserver_claim');
-            window.location.href = '/dashboard.html';
-          });
+          success.style.display = 'none';
+          console.error('Signup error:', error.code, error.message);
+          if (error.code === 'auth/email-already-in-use' || error.message === 'Username already taken') {
+            error.textContent = 'This username is already registered. Please sign in.';
+          } else if (error.code === 'auth/invalid-email') {
+            error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
+          } else if (error.code === 'auth/weak-password') {
+            error.textContent = 'Password is too weak. Use at least 6 characters.';
+          } else if (error.code === 'permission-denied') {
+            error.textContent = 'Permission error. Please check Firestore security rules.';
+          } else {
+            error.textContent = 'Error creating account: ' + error.message;
+          }
+          error.style.display = 'block';
         });
-      }).catch(function(error) {
-        btn.disabled = false;
-        success.style.display = 'none';
-        console.error('Signup error:', error.code, error.message);
-        if (error.code === 'auth/email-already-in-use') {
-          error.textContent = 'This username is already registered. Please sign in.';
-        } else if (error.code === 'auth/invalid-email') {
-          error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
-        } else if (error.code === 'auth/weak-password') {
-          error.textContent = 'Password is too weak. Use at least 6 characters.';
-        } else {
-          error.textContent = 'Error creating account: ' + error.message;
-        }
-        error.style.display = 'block';
-      });
     });
   </script>
 </body>
