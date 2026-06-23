@@ -31,8 +31,6 @@
     .error-msg{color:#ff6b6b;font-size:12px;margin-top:4px;display:none;text-align:center}
     .success-msg{color:#5b8ef0;font-size:12px;margin-top:4px;display:none;text-align:center}
     .domain-hint{font-size:11px;color:rgba(255,255,255,0.25);margin-top:4px;text-align:right;padding-right:4px}
-    .username-preview{font-size:13px;color:#888;margin-top:4px;padding:6px 12px;background:#0e0e0e;border-radius:4px;border:1px solid #2a2a2a;text-align:center}
-    .username-preview span{color:#4f7cff;font-weight:600}
   </style>
 </head>
 <body>
@@ -45,12 +43,11 @@
   <div class="card">
     <form id="signupForm">
       <div class="field">
-        <label for="username">Choose your username</label>
+        <label for="username">Username</label>
         <div class="input-wrap">
-          <input type="text" id="username" name="username" autocomplete="username" placeholder="username" required />
+          <input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" required />
         </div>
-        <div class="username-preview" id="emailPreview">Your email: <span>username@mailserver.life</span></div>
-        <div class="domain-hint">3-24 characters · letters, numbers, underscores only</div>
+        <div class="domain-hint">@mailserver.life · 3-24 characters · letters, numbers, underscores</div>
       </div>
 
       <div class="field">
@@ -94,38 +91,6 @@
     var db = firebase.firestore();
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-    var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
-    var STORAGE_KEY = 'mailserver_data';
-
-    function getStorage() {
-      try {
-        var raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return { users: {}, version: ENCRYPTION_KEY };
-        var data = JSON.parse(raw);
-        if (data.version !== ENCRYPTION_KEY) {
-          return { users: {}, version: ENCRYPTION_KEY };
-        }
-        return data;
-      } catch (e) {
-        return { users: {}, version: ENCRYPTION_KEY };
-      }
-    }
-
-    function saveStorage(data) {
-      data.version = ENCRYPTION_KEY;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function getUsers() {
-      return getStorage().users || {};
-    }
-
-    function saveUsers(users) {
-      var data = getStorage();
-      data.users = users;
-      saveStorage(data);
-    }
-
     function toggle(id, btn) {
       var input = document.getElementById(id);
       if (input.type === 'password') {
@@ -137,16 +102,10 @@
       }
     }
 
-    document.getElementById('username').addEventListener('input', function() {
-      var val = this.value.trim() || 'username';
-      document.querySelector('#emailPreview span').textContent = val + '@mailserver.life';
-    });
-
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
     if (claimed) {
       usernameInput.value = claimed;
-      document.querySelector('#emailPreview span').textContent = claimed + '@mailserver.life';
     }
 
     document.getElementById('signupForm').addEventListener('submit', function(e) {
@@ -189,15 +148,6 @@
       btn.disabled = true;
 
       var email = username + '@mailserver.life';
-      var users = getUsers();
-      
-      if (users[username]) {
-        error.textContent = 'Username already taken. Try another.';
-        error.style.display = 'block';
-        success.style.display = 'none';
-        btn.disabled = false;
-        return;
-      }
 
       db.collection('usernames').doc(username).get().then(function(snapshot) {
         if (snapshot.exists) {
@@ -213,14 +163,6 @@
           return user.updateProfile({
             displayName: username
           }).then(function() {
-            users[username] = {
-              password: password,
-              created: Date.now(),
-              email: email,
-              twofa: { enabled: false }
-            };
-            saveUsers(users);
-
             return db.collection('users').doc(user.uid).set({
               username: username,
               email: email,
