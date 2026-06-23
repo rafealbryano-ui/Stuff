@@ -8,15 +8,18 @@
     var path = window.location.pathname;
     
     if (path.startsWith('/app/')) {
-      return;
-    } else if (path.includes('dashboard.html')) {
-      var params = new URLSearchParams(window.location.search);
-      var page = params.get('page') || 'inbox';
-      var tab = params.get('tab') || '';
-      if (page === 'settings' && tab) {
-        window.location.replace('/app/settings/' + tab);
+      var pagePart = path.replace('/app/', '');
+      if (pagePart.includes('/')) {
+        var parts = pagePart.split('/');
+        var mainPage = parts[0];
+        var tab = parts[1] || '';
+        if (mainPage === 'settings' && tab) {
+          window.location.replace('/dashboard.html?page=' + mainPage + '&tab=' + tab);
+        } else {
+          window.location.replace('/dashboard.html?page=' + pagePart);
+        }
       } else {
-        window.location.replace('/app/' + page);
+        window.location.replace('/dashboard.html?page=' + pagePart);
       }
     } else if (path === '/' || path === '') {
       window.location.replace('/index.html');
