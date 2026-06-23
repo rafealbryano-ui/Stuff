@@ -7,22 +7,30 @@
   <script>
     var path = window.location.pathname;
     
-    if (path.startsWith('/app/')) {
-      var pagePart = path.replace('/app/', '');
-      if (pagePart.includes('/')) {
-        var parts = pagePart.split('/');
-        var mainPage = parts[0];
-        var tab = parts[1] || '';
-        if (mainPage === 'settings' && tab) {
-          window.location.replace('/dashboard.html?page=' + mainPage + '&tab=' + tab);
-        } else {
-          window.location.replace('/dashboard.html?page=' + pagePart);
-        }
-      } else {
-        window.location.replace('/dashboard.html?page=' + pagePart);
-      }
-    } else if (path === '/' || path === '') {
+    if (path === '/' || path === '') {
       window.location.replace('/index.html');
+    } else if (path === '/dashboard') {
+      window.location.replace('/inbox.html');
+    } else if (path === '/inbox') {
+      window.location.replace('/inbox.html');
+    } else if (path === '/sent') {
+      window.location.replace('/sent.html');
+    } else if (path === '/tempmail') {
+      window.location.replace('/tempmail.html');
+    } else if (path === '/trash') {
+      window.location.replace('/trash.html');
+    } else if (path === '/files') {
+      window.location.replace('/files.html');
+    } else if (path === '/settings') {
+      var params = new URLSearchParams(window.location.search);
+      var tab = params.get('tab') || 'account';
+      window.location.replace('/settings.html?tab=' + tab);
+    } else if (path === '/login') {
+      window.location.replace('/login.html');
+    } else if (path === '/signup') {
+      window.location.replace('/signup.html');
+    } else if (path === '/forgot') {
+      window.location.replace('/forgot.html');
     } else if (!path.includes('.') && path !== '/') {
       window.location.replace(path + '.html');
     }
