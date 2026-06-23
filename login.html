@@ -175,6 +175,7 @@
       font-size: 11px;
       color: rgba(255, 255, 255, 0.25);
       margin-top: 4px;
+      text-align: right;
       padding-right: 4px;
     }
   </style>
@@ -183,7 +184,7 @@
 
   <div class="brand">
     <h1>mailserver.life</h1>
-    <p>Private. Simple. Yours.</p>
+    <p>Sign in to your free email</p>
   </div>
 
   <div class="card">
@@ -211,7 +212,7 @@
   </div>
 
   <div class="footer">
-    <div>No account? <a href="/signup">Register</a></div>
+    <div>No account? <a href="/signup">Get your free email</a></div>
     <div class="forgot"><a href="/forgot">Forgot password?</a></div>
   </div>
 
@@ -273,7 +274,13 @@
         .catch(function(error) {
           btn.disabled = false;
           success.style.display = 'none';
-          error.textContent = 'Invalid username or password. Please try again.';
+          if (error.code === 'auth/user-not-found') {
+            error.textContent = 'Username not found. Please check your username.';
+          } else if (error.code === 'auth/wrong-password') {
+            error.textContent = 'Wrong password. Please try again.';
+          } else {
+            error.textContent = 'Invalid username or password. Please try again.';
+          }
           error.style.display = 'block';
         });
     });
