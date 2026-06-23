@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign up — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{min-height:100vh;background:#0e0e0e;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;padding:40px 20px}
@@ -27,18 +30,6 @@
     .footer a:hover{text-decoration:underline}
     .error-msg{color:#ff6b6b;font-size:12px;margin-top:4px;display:none;text-align:center}
     .success-msg{color:#5b8ef0;font-size:12px;margin-top:4px;display:none;text-align:center}
-    .twofa-section{border-top:1px solid rgba(255,255,255,0.06);margin-top:16px;padding-top:16px;display:none}
-    .twofa-section.active{display:block}
-    .twofa-code{font-family:'JetBrains Mono',monospace;letter-spacing:4px;font-size:20px;color:#fff;background:#0a0a0a;padding:12px;border-radius:6px;text-align:center;border:0.5px solid rgba(255,255,255,0.1);margin:8px 0}
-    .twofa-label{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px}
-    .toggle-2fa{display:flex;align-items:center;gap:10px;margin:12px 0;cursor:pointer;color:rgba(255,255,255,0.6);font-size:13px}
-    .toggle-2fa input[type="checkbox"]{appearance:none;width:38px;height:22px;background:#222;border-radius:11px;border:1px solid #333;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
-    .toggle-2fa input[type="checkbox"]:checked{background:#5b8ef0;border-color:#5b8ef0}
-    .toggle-2fa input[type="checkbox"]::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform 0.2s}
-    .toggle-2fa input[type="checkbox"]:checked::after{transform:translateX(16px)}
-    .toggle-2fa:hover{color:#fff}
-    .back-link{display:inline-block;margin-top:16px;color:rgba(255,255,255,0.3);text-decoration:none;font-size:13px}
-    .back-link:hover{color:rgba(255,255,255,0.6)}
   </style>
 </head>
 <body>
@@ -49,11 +40,18 @@
   </div>
 
   <div class="card">
-    <form id="signupForm" method="POST" action="/dashboard">
+    <form id="signupForm">
       <div class="field">
         <label for="username">Username</label>
         <div class="input-wrap">
           <input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" required />
         </div>
       </div>
 
@@ -73,24 +71,6 @@
         </div>
       </div>
 
-      <div class="toggle-2fa" onclick="toggle2FA()">
-        <input type="checkbox" id="enable2fa" />
-        <span>Enable two-factor authentication (2FA)</span>
-      </div>
-
-      <div class="twofa-section" id="twofaSection">
-        <div class="twofa-label">Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</div>
-        <div class="twofa-code" id="twofaSecret">Loading...</div>
-        <div class="twofa-label">Or enter this code manually</div>
-        <div class="field" style="margin-top:8px">
-          <label for="twofaCode">Enter 6-digit code from your authenticator app</label>
-          <div class="input-wrap">
-            <input type="text" id="twofaCode" placeholder="000000" maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*" />
-          </div>
-        </div>
-        <div class="error-msg" id="twofaError">Invalid 2FA code. Please try again.</div>
-      </div>
-
       <div class="error-msg" id="signupError">Please fill in all fields correctly.</div>
       <div class="success-msg" id="signupSuccess">Account created! Redirecting...</div>
       <button type="submit" class="btn-create" id="signupBtn">Create account</button>
@@ -102,9 +82,51 @@
   </div>
 
   <script>
-    var twofaSecret = '';
-    var twofaEnabled = false;
-    var twofaVerified = false;
+    const firebaseConfig = {
+      apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+      authDomain: "mailserver-life.firebaseapp.com",
+      projectId: "mailserver-life",
+      storageBucket: "mailserver-life.firebasestorage.app",
+      messagingSenderId: "195734676668",
+      appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+      measurementId: "G-V216FC1QMD"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+    var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
+    var STORAGE_KEY = 'mailserver_data';
+
+    function getStorage() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return { users: {}, version: ENCRYPTION_KEY };
+        var data = JSON.parse(raw);
+        if (data.version !== ENCRYPTION_KEY) {
+          return { users: {}, version: ENCRYPTION_KEY };
+        }
+        return data;
+      } catch (e) {
+        return { users: {}, version: ENCRYPTION_KEY };
+      }
+    }
+
+    function saveStorage(data) {
+      data.version = ENCRYPTION_KEY;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function getUsers() {
+      return getStorage().users || {};
+    }
+
+    function saveUsers(users) {
+      var data = getStorage();
+      data.users = users;
+      saveStorage(data);
+    }
 
     function toggle(id, btn) {
       var input = document.getElementById(id);
@@ -117,63 +139,6 @@
       }
     }
 
-    function generateSecret() {
-      var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-      var secret = '';
-      for (var i = 0; i < 16; i++) {
-        secret += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return secret;
-    }
-
-    function generateTOTP(secret) {
-      var time = Math.floor(Date.now() / 30000);
-      var hmac = secret + time;
-      var hash = 0;
-      for (var i = 0; i < hmac.length; i++) {
-        hash = ((hash << 5) - hash) + hmac.charCodeAt(i);
-        hash = hash & hash;
-      }
-      var code = (Math.abs(hash) % 1000000).toString().padStart(6, '0');
-      return code;
-    }
-
-    function toggle2FA() {
-      var cb = document.getElementById('enable2fa');
-      var section = document.getElementById('twofaSection');
-      twofaEnabled = cb.checked;
-      if (twofaEnabled) {
-        section.classList.add('active');
-        if (!twofaSecret) {
-          twofaSecret = generateSecret();
-          document.getElementById('twofaSecret').textContent = twofaSecret;
-        }
-      } else {
-        section.classList.remove('active');
-        twofaVerified = false;
-      }
-    }
-
-    document.getElementById('twofaCode').addEventListener('input', function() {
-      var code = this.value.trim();
-      var error = document.getElementById('twofaError');
-      if (code.length === 6) {
-        var expected = generateTOTP(twofaSecret);
-        if (code === expected) {
-          twofaVerified = true;
-          error.style.display = 'none';
-          this.style.borderColor = 'rgba(91,142,240,0.5)';
-        } else {
-          twofaVerified = false;
-          error.style.display = 'block';
-          this.style.borderColor = '#ff6b6b';
-        }
-      } else {
-        error.style.display = 'none';
-        this.style.borderColor = 'rgba(255,255,255,0.1)';
-      }
-    });
-
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
     if (claimed) {
@@ -184,19 +149,14 @@
       e.preventDefault();
 
       var username = document.getElementById('username').value.trim();
+      var email = document.getElementById('email').value.trim();
       var password = document.getElementById('password').value;
       var confirm = document.getElementById('confirm').value;
       var error = document.getElementById('signupError');
       var success = document.getElementById('signupSuccess');
       var btn = document.getElementById('signupBtn');
 
-      if (twofaEnabled && !twofaVerified) {
-        error.textContent = 'Please enter the correct 2FA code from your authenticator app.';
-        error.style.display = 'block';
-        return;
-      }
-
-      if (!username || !password || !confirm) {
+      if (!username || !email || !password || !confirm) {
         error.textContent = 'Please fill in all fields.';
         error.style.display = 'block';
         return;
@@ -220,41 +180,73 @@
         return;
       }
 
-      var storage = JSON.parse(localStorage.getItem('mailserver_data') || '{"users":{},"version":"XL!KD_USERAKFLAP"}');
-      var users = storage.users || {};
+      error.style.display = 'none';
+      success.style.display = 'block';
+      success.textContent = 'Creating account...';
+      btn.disabled = true;
 
+      var users = getUsers();
       if (users[username]) {
         error.textContent = 'Username already taken.';
         error.style.display = 'block';
+        success.style.display = 'none';
+        btn.disabled = false;
         return;
       }
 
-      var userData = {
-        password: password,
-        created: Date.now(),
-        twofa: twofaEnabled ? {
-          enabled: true,
-          secret: twofaSecret
-        } : {
-          enabled: false
+      db.collection('usernames').doc(username).get().then(function(snapshot) {
+        if (snapshot.exists) {
+          error.textContent = 'Username already taken. Try another.';
+          error.style.display = 'block';
+          success.style.display = 'none';
+          btn.disabled = false;
+          return;
         }
-      };
 
-      users[username] = userData;
-      storage.users = users;
-      localStorage.setItem('mailserver_data', JSON.stringify(storage));
+        return auth.createUserWithEmailAndPassword(email, password).then(function(userCredential) {
+          var user = userCredential.user;
+          return user.updateProfile({
+            displayName: username
+          }).then(function() {
+            users[username] = {
+              password: password,
+              created: Date.now(),
+              twofa: { enabled: false }
+            };
+            saveUsers(users);
 
-      sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-      sessionStorage.removeItem('mailserver_claim');
-
-      error.style.display = 'none';
-      success.style.display = 'block';
-      btn.disabled = true;
-      btn.textContent = 'Creating account...';
-
-      setTimeout(function() {
-        window.location.href = '/dashboard';
-      }, 1500);
+            return db.collection('users').doc(user.uid).set({
+              username: username,
+              email: email,
+              displayName: username,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              handles: [username],
+              primaryHandle: username,
+              bio: 'No bio yet.'
+            });
+          }).then(function() {
+            return db.collection('usernames').doc(username).set({
+              uid: user.uid,
+              claimedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }).then(function() {
+            sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+            sessionStorage.removeItem('mailserver_claim');
+            setTimeout(function() {
+              window.location.href = '/dashboard';
+            }, 1500);
+          });
+        });
+      }).catch(function(error) {
+        btn.disabled = false;
+        success.style.display = 'none';
+        if (error.code === 'auth/email-already-in-use') {
+          error.textContent = 'Email already registered. Please sign in.';
+        } else {
+          error.textContent = 'Error creating account: ' + error.message;
+        }
+        error.style.display = 'block';
+      });
     });
   </script>
 </body>
