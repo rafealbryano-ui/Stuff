@@ -169,6 +169,13 @@
     .footer a:hover {
       color: #fff;
     }
+
+    .domain-hint {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.25);
+      margin-top: 4px;
+      padding-right: 4px;
+    }
   </style>
 </head>
 <body>
@@ -181,22 +188,23 @@
   <div class="card">
     <div id="form-view">
       <p class="card-title">Reset your password</p>
-      <p class="card-sub">Enter your email and we'll send a password reset link.</p>
+      <p class="card-sub">Enter your username and we'll send a password reset link to your email.</p>
 
       <div class="field">
-        <label for="email">Email</label>
+        <label for="username">Username</label>
         <div class="input-wrap">
-          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" />
+          <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" />
         </div>
+        <div class="domain-hint">@mailserver.life</div>
       </div>
 
-      <div class="error-msg" id="resetError">Email not found. Please try again.</div>
+      <div class="error-msg" id="resetError">Username not found. Please try again.</div>
       <button class="btn-reset" type="button" id="resetBtn" onclick="handleReset()">Send reset link</button>
     </div>
 
     <div class="success" id="success-view">
       <div class="success-icon">✉️</div>
-      <p>If <span id="entered-user"></span> has an account, a password reset link is on its way.</p>
+      <p>If <span id="entered-user"></span> has an account, a password reset link is on its way to <span id="entered-email"></span>.</p>
     </div>
   </div>
 
@@ -218,12 +226,18 @@
     var auth = firebase.auth();
 
     function handleReset() {
-      var email = document.getElementById('email').value.trim();
+      var username = document.getElementById('username').value.trim().toLowerCase();
       var error = document.getElementById('resetError');
       var btn = document.getElementById('resetBtn');
       
-      if (!email) {
-        error.textContent = 'Please enter your email.';
+      if (!username) {
+        error.textContent = 'Please enter your username.';
+        error.style.display = 'block';
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+        error.textContent = 'Invalid username format.';
         error.style.display = 'block';
         return;
       }
@@ -232,9 +246,12 @@
       btn.disabled = true;
       btn.textContent = 'Sending...';
 
+      var email = username + '@mailserver.life';
+
       auth.sendPasswordResetEmail(email)
         .then(function() {
-          document.getElementById('entered-user').textContent = email;
+          document.getElementById('entered-user').textContent = username;
+          document.getElementById('entered-email').textContent = email;
           document.getElementById('form-view').style.display = 'none';
           document.getElementById('success-view').style.display = 'block';
           btn.disabled = false;
@@ -244,7 +261,7 @@
           btn.disabled = false;
           btn.textContent = 'Send reset link';
           if (error.code === 'auth/user-not-found') {
-            error.textContent = 'No account found with this email.';
+            error.textContent = 'No account found with this username.';
           } else {
             error.textContent = 'Error sending reset email. Please try again.';
           }
@@ -252,7 +269,7 @@
         });
     }
 
-    document.getElementById('email').addEventListener('keydown', function(e) {
+    document.getElementById('username').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         handleReset();
       }
