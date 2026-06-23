@@ -162,7 +162,6 @@ function loadSent() {
   
   db.collection('emails')
     .where('from', '==', userEmail)
-    .orderBy('sentAt', 'desc')
     .get()
     .then(function(snapshot) {
       sentMsgs = [];
@@ -179,6 +178,10 @@ function loadSent() {
           time: timeStr,
           body: data.body || ''
         });
+      });
+      // Sort in JavaScript instead of Firestore
+      sentMsgs.sort(function(a, b) {
+        return new Date(b.time) - new Date(a.time);
       });
       renderSent();
     })
