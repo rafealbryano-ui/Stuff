@@ -156,7 +156,7 @@
 <div class="toast" id="toast-el"></div>
 
 <script>
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
   authDomain: "mailserver-life.firebaseapp.com",
   projectId: "mailserver-life",
@@ -166,8 +166,8 @@ const firebaseConfig = {
   measurementId: "G-V216FC1QMD"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+var auth = firebase.auth();
+var db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 var D = 'mailserver.life';
