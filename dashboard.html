@@ -118,6 +118,14 @@
     .lookup-result{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:16px;margin-top:12px;display:none}
     .lookup-result.show{display:block}
     .user-email{font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:2px}
+    .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:999;align-items:center;justify-content:center}
+    .modal-overlay.show{display:flex}
+    .modal{background:var(--ms-card);border:1px solid var(--ms-border);border-radius:12px;padding:24px;max-width:500px;width:90%}
+    .modal-title{font-size:18px;font-weight:600;margin-bottom:16px;color:var(--ms-text)}
+    .modal input,.modal textarea{width:100%;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:10px 12px;color:var(--ms-text);margin-bottom:12px;font-family:var(--ms-sans);font-size:13px}
+    .modal textarea{min-height:120px;resize:vertical}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+    .email-badge{display:inline-block;background:var(--ms-accent-dim);color:var(--ms-accent);padding:2px 10px;border-radius:4px;font-size:11px;font-weight:500;margin-left:8px}
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
@@ -151,6 +159,19 @@
 
   <main class="main" id="main-area"></main>
 </div>
+</div>
+
+<div class="modal-overlay" id="composeModal">
+  <div class="modal">
+    <div class="modal-title">✏️ New Message</div>
+    <input type="text" id="composeTo" placeholder="To: username@mailserver.life">
+    <input type="text" id="composeSubject" placeholder="Subject">
+    <textarea id="composeBody" placeholder="Write your message..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeCompose()">Cancel</button>
+      <button class="btn btn-primary" onclick="sendCompose()">Send</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast-el"></div>
@@ -188,6 +209,7 @@ auth.onAuthStateChanged(function(user) {
   document.getElementById('unread-badge').textContent = 0;
   loadUserData();
   switchMain('inbox');
+  loadEmails();
 });
 
 function loadUserData() {
@@ -212,19 +234,6 @@ function getUsers() {
   } catch(e) { return {}; }
 }
 
-function getUserIndex(username) {
-  var users = getUsers();
-  var keys = Object.keys(users);
-  for (var i = 0; i < keys.length; i++) {
-    if (keys[i] === username) return i + 1;
-  }
-  return 0;
-}
-
-function getSession() {
-  try { return JSON.parse(sessionStorage.getItem('mailserver_session')) || null; } catch(e) { return null; }
-}
-
 function showToast(msg){
   var el=document.getElementById('toast-el');
   el.textContent=msg;el.classList.add('show');
@@ -246,11 +255,99 @@ function logout() {
 
 var msgs = [];
 
+function loadEmails() {
+  db.collection('emails')
+    .where('to', '==', USERNAME + '@' + D)
+    .orderBy('sentAt', 'desc')
+    .get()
+    .then(function(snapshot) {
+      msgs = [];
+      snapshot.forEach(function(doc) {
+        var data = doc.data();
+        msgs.push({
+          id: doc.id,
+          from: data.from || 'unknown',
+          subject: data.subject || '(no subject)',
+          time: data.sentAt ? new Date(data.sentAt.toDate()).toLocaleString() : 'Just now',
+          unread: !data.read,
+          body: data.body || ''
+        });
+      });
+      updateUnreadCount();
+      if (document.querySelector('.sidebar-item.active') && document.querySelector('.sidebar-item.active').textContent.includes('Inbox')) {
+        switchMain('inbox');
+      }
+    })
+    .catch(function(error) {
+      console.error('Error loading emails:', error);
+    });
+}
+
+function updateUnreadCount() {
+  var unread = msgs.filter(function(m) { return m.unread; }).length;
+  document.getElementById('unread-badge').textContent = unread;
+}
+
+function openCompose() {
+  document.getElementById('composeModal').classList.add('show');
+}
+
+function closeCompose() {
+  document.getElementById('composeModal').classList.remove('show');
+  document.getElementById('composeTo').value = '';
+  document.getElementById('composeSubject').value = '';
+  document.getElementById('composeBody').value = '';
+}
+
+function sendCompose() {
+  var to = document.getElementById('composeTo').value.trim();
+  var subject = document.getElementById('composeSubject').value.trim();
+  var body = document.getElementById('composeBody').value.trim();
+
+  if (!to || !subject || !body) {
+    showToast('Please fill in all fields.');
+    return;
+  }
+
+  if (!to.includes('@')) {
+    to = to + '@' + D;
+  }
+
+  var emailData = {
+    from: USERNAME + '@' + D,
+    to: to,
+    subject: subject,
+    body: body,
+    sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+    read: false
+  };
+
+  db.collection('emails').add(emailData)
+    .then(function() {
+      showToast('Email sent to ' + to);
+      closeCompose();
+      msgs.unshift({ 
+        from: USERNAME + '@' + D, 
+        subject: subject, 
+        time: 'Just now', 
+        unread: false,
+        body: body
+      });
+      updateUnreadCount();
+      if (document.querySelector('.sidebar-item.active') && document.querySelector('.sidebar-item.active').textContent.includes('Inbox')) {
+        switchMain('inbox');
+      }
+    })
+    .catch(function(error) {
+      showToast('Error sending email: ' + error.message);
+    });
+}
+
 function switchMain(s){
   var el=document.getElementById('main-area');
   if(s==='inbox') el.innerHTML=renderInbox();
   else if(s==='settings') el.innerHTML=renderSettings();
-  else if(s==='sent') el.innerHTML=renderEmpty('ti-send','Sent','No sent messages yet.');
+  else if(s==='sent') el.innerHTML=renderSent();
   else if(s==='tempmail') el.innerHTML=renderTempmail();
   else if(s==='trash') el.innerHTML=renderEmpty('ti-trash','Trash','Trash is empty.');
   else if(s==='files') el.innerHTML=renderEmpty('ti-file','Files','No files uploaded.');
@@ -260,24 +357,108 @@ function switchMain(s){
 function renderInbox(){
   if (msgs.length === 0) {
     return '<div class="inbox-bar">'+
-      '<div class="inbox-search"><i class="ti ti-search"></i><input type="text" placeholder="Search mail…"></div>'+
-      '<button class="btn btn-primary" onclick="showToast(\'Compose window coming soon\')"><i class="ti ti-pencil-plus" style="margin-right:4px"></i>Compose</button>'+
+      '<div class="inbox-search"><i class="ti ti-search"></i><input type="text" placeholder="Search mail…" oninput="searchEmails(this.value)"></div>'+
+      '<button class="btn btn-primary" onclick="openCompose()"><i class="ti ti-pencil-plus" style="margin-right:4px"></i>Compose</button>'+
+      '<button class="btn btn-outline" onclick="loadEmails()"><i class="ti ti-refresh" style="margin-right:4px"></i>Refresh</button>'+
     '</div>'+
     '<div class="empty-inbox"><i class="ti ti-inbox"></i><div style="font-size:15px;font-weight:600;color:var(--ms-text);margin-bottom:6px">Your inbox is empty</div><div>Messages sent to @' + USERNAME + '@' + D + ' will appear here.</div></div>';
   }
   var rows = msgs.map(function(m){
-    return '<div class="msg-item '+(m.unread?'unread':'')+'">'+
-      '<div class="msg-dot '+(m.unread?'':'read')+'"></div>'+
-      '<div class="msg-from">'+m.from+'</div>'+
-      '<div class="msg-subject">'+m.subject+'</div>'+
-      '<div class="msg-time">'+m.time+'</div>'+
+    var isUnread = m.unread ? 'unread' : '';
+    var dotClass = m.unread ? '' : 'read';
+    return '<div class="msg-item ' + isUnread + '" onclick="openEmail(\'' + m.id + '\')">'+
+      '<div class="msg-dot ' + dotClass + '"></div>'+
+      '<div class="msg-from">' + m.from + '</div>'+
+      '<div class="msg-subject">' + m.subject + '</div>'+
+      '<div class="msg-time">' + m.time + '</div>'+
     '</div>';
   }).join('');
   return '<div class="inbox-bar">'+
-    '<div class="inbox-search"><i class="ti ti-search"></i><input type="text" placeholder="Search mail…"></div>'+
-    '<button class="btn btn-primary" onclick="showToast(\'Compose window coming soon\')"><i class="ti ti-pencil-plus" style="margin-right:4px"></i>Compose</button>'+
+    '<div class="inbox-search"><i class="ti ti-search"></i><input type="text" placeholder="Search mail…" oninput="searchEmails(this.value)"></div>'+
+    '<button class="btn btn-primary" onclick="openCompose()"><i class="ti ti-pencil-plus" style="margin-right:4px"></i>Compose</button>'+
+    '<button class="btn btn-outline" onclick="loadEmails()"><i class="ti ti-refresh" style="margin-right:4px"></i>Refresh</button>'+
   '</div>'+
-  '<div>'+rows+'</div>';
+  '<div id="email-list">'+rows+'</div>';
+}
+
+function searchEmails(query) {
+  var filtered = msgs.filter(function(m) {
+    return m.subject.toLowerCase().includes(query.toLowerCase()) || 
+           m.from.toLowerCase().includes(query.toLowerCase()) ||
+           (m.body && m.body.toLowerCase().includes(query.toLowerCase()));
+  });
+  var container = document.getElementById('email-list');
+  if (!container) return;
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-inbox" style="padding:40px 0"><i class="ti ti-search"></i><div style="font-size:15px;font-weight:600;color:var(--ms-text);margin-bottom:6px">No results found</div></div>';
+    return;
+  }
+  var rows = filtered.map(function(m){
+    var isUnread = m.unread ? 'unread' : '';
+    var dotClass = m.unread ? '' : 'read';
+    return '<div class="msg-item ' + isUnread + '" onclick="openEmail(\'' + m.id + '\')">'+
+      '<div class="msg-dot ' + dotClass + '"></div>'+
+      '<div class="msg-from">' + m.from + '</div>'+
+      '<div class="msg-subject">' + m.subject + '</div>'+
+      '<div class="msg-time">' + m.time + '</div>'+
+    '</div>';
+  }).join('');
+  container.innerHTML = rows;
+}
+
+function openEmail(id) {
+  var email = msgs.find(function(m) { return m.id === id; });
+  if (!email) return;
+  
+  if (email.unread) {
+    email.unread = false;
+    db.collection('emails').doc(id).update({ read: true });
+    updateUnreadCount();
+  }
+  
+  var modal = document.createElement('div');
+  modal.className = 'modal-overlay show';
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div class="modal" style="max-width:600px">'+
+    '<div class="modal-title" style="margin-bottom:4px">' + email.subject + '</div>'+
+    '<div style="font-size:13px;color:var(--ms-muted);margin-bottom:16px">From: ' + email.from + ' · ' + email.time + '</div>'+
+    '<div style="font-size:14px;color:var(--ms-text);line-height:1.8;white-space:pre-wrap;background:#0e0e0e;padding:16px;border-radius:6px;border:1px solid var(--ms-border);max-height:400px;overflow-y:auto">' + (email.body || 'No content') + '</div>'+
+    '<div class="modal-actions" style="margin-top:16px">'+
+      '<button class="btn btn-outline" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>'+
+      '<button class="btn btn-outline" onclick="replyEmail(\'' + id + '\')">Reply</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(modal);
+}
+
+function replyEmail(id) {
+  var email = msgs.find(function(m) { return m.id === id; });
+  if (!email) return;
+  document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
+  openCompose();
+  document.getElementById('composeTo').value = email.from;
+  document.getElementById('composeSubject').value = 'Re: ' + email.subject;
+  document.getElementById('composeBody').value = '\n\n--- Original message ---\nFrom: ' + email.from + '\n' + email.body;
+}
+
+function renderSent() {
+  var sent = msgs.filter(function(m) { return m.from === USERNAME + '@' + D; });
+  if (sent.length === 0) {
+    return renderEmpty('ti-send','Sent','No sent messages yet.');
+  }
+  var rows = sent.map(function(m){
+    return '<div class="msg-item" onclick="openEmail(\'' + m.id + '\')">'+
+      '<div class="msg-dot read"></div>'+
+      '<div class="msg-from" style="color:var(--ms-muted)">To: ' + m.to + '</div>'+
+      '<div class="msg-subject">' + m.subject + '</div>'+
+      '<div class="msg-time">' + m.time + '</div>'+
+    '</div>';
+  }).join('');
+  return '<div class="inbox-bar">'+
+    '<div class="inbox-search"><i class="ti ti-search"></i><input type="text" placeholder="Search sent…"></div>'+
+    '<button class="btn btn-primary" onclick="openCompose()"><i class="ti ti-pencil-plus" style="margin-right:4px"></i>Compose</button>'+
+  '</div>'+
+  rows;
 }
 
 function renderEmpty(icon,title,msg){
@@ -555,13 +736,6 @@ function attachHandlers(){
   });
 }
 
-function togglePw(id,el){
-  var inp=document.getElementById(id);
-  if(!inp) return;
-  if(inp.type==='password'){inp.type='text';el.textContent='Hide';}
-  else{inp.type='password';el.textContent='Show';}
-}
-
 function checkDelete(){
   var v=document.getElementById('del-confirm');
   if(v&&v.value==='DELETE') {
@@ -642,6 +816,18 @@ function doLookup(){
 }
 
 document.getElementById('unread-badge').textContent = 0;
+
+window.addEventListener('click', function(e) {
+  if (e.target.classList.contains('modal-overlay') && e.target.id !== 'composeModal') {
+    e.target.remove();
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay').forEach(function(el) { el.remove(); });
+  }
+});
 </script>
 </body>
 </html>
