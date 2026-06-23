@@ -148,6 +148,7 @@ var D = 'mailserver.life';
 var USERNAME = '';
 var USER_UID = '';
 var msgs = [];
+var MAILGUN_KEY = 'a072c9bc-6af7d3d1';
 
 auth.onAuthStateChanged(function(user) {
   if (!user) {
@@ -177,7 +178,6 @@ function loadEmails() {
   
   db.collection('emails')
     .where('to', '==', userEmail)
-    .orderBy('sentAt', 'desc')
     .get()
     .then(function(snapshot) {
       msgs = [];
@@ -195,6 +195,9 @@ function loadEmails() {
           unread: !data.read,
           body: data.body || ''
         });
+      });
+      msgs.sort(function(a, b) {
+        return new Date(b.time) - new Date(a.time);
       });
       renderInbox();
     })
@@ -292,6 +295,36 @@ function closeCompose() {
   document.getElementById('composeBody').value = '';
 }
 
+function sendViaMailgun(to, subject, body, fromEmail, docId) {
+  var formData = new FormData();
+  formData.append('from', fromEmail);
+  formData.append('to', to);
+  formData.append('subject', subject);
+  formData.append('text', body);
+
+  fetch('https://api.mailgun.net/v3/mailserver.life/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + btoa('api:' + MAILGUN_KEY)
+    },
+    body: formData
+  })
+  .then(function(response) {
+    if (response.ok) {
+      showToast('Email sent to ' + to + ' ✅');
+      db.collection('emails').doc(docId).update({ sentToExternal: true });
+      closeCompose();
+      loadEmails();
+    } else {
+      throw new Error('Mailgun error: ' + response.status);
+    }
+  })
+  .catch(function(error) {
+    showToast('Email saved but could not deliver to ' + to);
+    console.error('Mailgun error:', error);
+  });
+}
+
 function sendCompose() {
   var to = document.getElementById('composeTo').value.trim();
   var subject = document.getElementById('composeSubject').value.trim();
@@ -306,8 +339,11 @@ function sendCompose() {
     to = to + '@' + D;
   }
 
+  var fromEmail = USERNAME + '@' + D;
+  var isExternal = !to.includes('mailserver.life');
+
   var emailData = {
-    from: USERNAME + '@' + D,
+    from: fromEmail,
     to: to,
     subject: subject,
     body: body,
@@ -316,13 +352,17 @@ function sendCompose() {
   };
 
   db.collection('emails').add(emailData)
-    .then(function() {
-      showToast('Email sent to ' + to + ' ✅');
-      closeCompose();
-      loadEmails();
+    .then(function(docRef) {
+      if (isExternal) {
+        sendViaMailgun(to, subject, body, fromEmail, docRef.id);
+      } else {
+        showToast('Email sent to ' + to + ' ✅');
+        closeCompose();
+        loadEmails();
+      }
     })
     .catch(function(error) {
-      showToast('Error sending email: ' + error.message);
+      showToast('Error saving email: ' + error.message);
     });
 }
 
