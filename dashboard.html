@@ -230,10 +230,10 @@ function getTabFromURL() {
 function updateURL(page, tab) {
   if (page === 'settings' && tab) {
     var url = '/app/settings/' + tab;
-    window.history.pushState({ page: page, tab: tab }, '', url);
+    window.history.replaceState({ page: page, tab: tab }, '', url);
   } else {
     var url = '/app/' + page;
-    window.history.pushState({ page: page }, '', url);
+    window.history.replaceState({ page: page }, '', url);
   }
 }
 
