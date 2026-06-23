@@ -119,7 +119,7 @@ var auth = firebase.auth();
 var db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-var ENCRYPTION_KEY = 'FJAODNTLIKETBEDATA_';
+var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
 var STORAGE_KEY = 'mailserver_data';
 
 function getStorage() {
@@ -262,7 +262,14 @@ function renderMemberCards() {
 document.getElementById('claimBtn').addEventListener('click', function() {
   var input = document.getElementById('claimInput');
   var error = document.getElementById('claimError');
-  var username = input.value.trim();
+  var username = input.value.trim().toLowerCase();
+  
+  if (!username) {
+    error.textContent = 'Please enter a username.';
+    error.style.display = 'block';
+    return;
+  }
+  
   var valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
   if (!valid) {
     error.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
