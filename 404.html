@@ -6,10 +6,11 @@
   <title>Redirecting...</title>
   <script>
     var path = window.location.pathname;
-    var page = path.split('/').pop();
     
-    if (!page.includes('.') && page !== '' && page !== 'index') {
-      window.location.replace(page + '.html');
+    if (path.startsWith('/app/')) {
+      window.location.replace('/dashboard.html?page=' + path.replace('/app/', ''));
+    } else if (!path.includes('.') && path !== '/' && path !== '') {
+      window.location.replace(path + '.html');
     } else if (path === '/' || path === '') {
       window.location.replace('/index.html');
     }
