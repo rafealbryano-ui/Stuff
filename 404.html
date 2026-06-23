@@ -22,10 +22,10 @@
       } else {
         window.location.replace('/dashboard.html?page=' + page);
       }
-    } else if (!path.includes('.') && path !== '/' && path !== '') {
-      window.location.replace(path + '.html');
     } else if (path === '/' || path === '') {
       window.location.replace('/index.html');
+    } else if (!path.includes('.') && path !== '/') {
+      window.location.replace(path + '.html');
     }
   </script>
 </head>
