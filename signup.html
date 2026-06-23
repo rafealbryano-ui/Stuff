@@ -185,6 +185,12 @@
           if (snapshot.exists) {
             throw new Error('Username already taken');
           }
+          return auth.fetchSignInMethodsForEmail(email);
+        })
+        .then(function(methods) {
+          if (methods && methods.length > 0) {
+            throw new Error('This username was previously registered. Please choose another.');
+          }
           return getNextUserNumber();
         })
         .then(function(userNumber) {
@@ -222,8 +228,10 @@
           btn.disabled = false;
           success.style.display = 'none';
           console.error('Signup error:', error.code, error.message);
-          if (error.code === 'auth/email-already-in-use' || error.message === 'Username already taken') {
+          if (error.code === 'auth/email-already-in-use') {
             error.textContent = 'This username is already registered. Please sign in.';
+          } else if (error.message === 'This username was previously registered. Please choose another.') {
+            error.textContent = 'This username was previously used. Please choose another.';
           } else if (error.code === 'auth/invalid-email') {
             error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
           } else if (error.code === 'auth/weak-password') {
