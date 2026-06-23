@@ -30,6 +30,7 @@
     .footer a:hover{text-decoration:underline}
     .error-msg{color:#ff6b6b;font-size:12px;margin-top:4px;display:none;text-align:center}
     .success-msg{color:#5b8ef0;font-size:12px;margin-top:4px;display:none;text-align:center}
+    .domain-hint{font-size:11px;color:rgba(255,255,255,0.25);margin-top:4px;text-align:right;padding-right:4px}
   </style>
 </head>
 <body>
@@ -46,13 +47,7 @@
         <div class="input-wrap">
           <input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" required />
         </div>
-      </div>
-
-      <div class="field">
-        <label for="email">Email</label>
-        <div class="input-wrap">
-          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" required />
-        </div>
+        <div class="domain-hint">@mailserver.life</div>
       </div>
 
       <div class="field">
@@ -148,15 +143,14 @@
     document.getElementById('signupForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      var username = document.getElementById('username').value.trim();
-      var email = document.getElementById('email').value.trim();
+      var username = document.getElementById('username').value.trim().toLowerCase();
       var password = document.getElementById('password').value;
       var confirm = document.getElementById('confirm').value;
       var error = document.getElementById('signupError');
       var success = document.getElementById('signupSuccess');
       var btn = document.getElementById('signupBtn');
 
-      if (!username || !email || !password || !confirm) {
+      if (!username || !password || !confirm) {
         error.textContent = 'Please fill in all fields.';
         error.style.display = 'block';
         return;
@@ -185,7 +179,9 @@
       success.textContent = 'Creating account...';
       btn.disabled = true;
 
+      var email = username + '@mailserver.life';
       var users = getUsers();
+      
       if (users[username]) {
         error.textContent = 'Username already taken.';
         error.style.display = 'block';
@@ -211,6 +207,7 @@
             users[username] = {
               password: password,
               created: Date.now(),
+              email: email,
               twofa: { enabled: false }
             };
             saveUsers(users);
@@ -241,7 +238,9 @@
         btn.disabled = false;
         success.style.display = 'none';
         if (error.code === 'auth/email-already-in-use') {
-          error.textContent = 'Email already registered. Please sign in.';
+          error.textContent = 'This username is already registered. Please sign in.';
+        } else if (error.code === 'auth/invalid-email') {
+          error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
         } else {
           error.textContent = 'Error creating account: ' + error.message;
         }
