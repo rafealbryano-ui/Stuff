@@ -119,141 +119,200 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-const navActions = document.getElementById('navActions');
-const claimInput = document.getElementById('claimInput');
-const claimBtn = document.getElementById('claimBtn');
-const claimError = document.getElementById('claimError');
-const userCountSpan = document.getElementById('userCount');
-const userCountStat = document.getElementById('userCountStat');
-const track = document.getElementById('track');
+var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
+var STORAGE_KEY = 'mailserver_data';
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    const username = user.displayName || user.email.split('@')[0];
-    navActions.innerHTML = `
-      <a href="/dashboard" style="text-decoration:none;"><button class="btn-nav btn-dashboard">Dashboard</button></a>
-      <button class="btn-nav btn-inbox" onclick="logout()">Logout</button>
-    `;
-    claimBtn.textContent = 'Dashboard';
-    claimBtn.onclick = () => { window.location.href = '/dashboard'; };
-    claimInput.value = username;
-    claimInput.readOnly = true;
-    document.querySelector('.claim-prefix').textContent = 'Welcome, ';
-  } else {
-    navActions.innerHTML = `
-      <a href="/login" style="text-decoration:none;"><button class="btn-nav btn-login">Log in</button></a>
-      <a href="/signup" style="text-decoration:none;"><button class="btn-nav btn-signup">Sign up</button></a>
-    `;
-    claimBtn.textContent = 'Claim';
-    claimBtn.onclick = handleClaim;
-    claimInput.value = '';
-    claimInput.readOnly = false;
-    document.querySelector('.claim-prefix').textContent = 'mailserver.life/';
-  }
-  updateUserCount();
-  renderMemberCards();
-});
-
-window.logout = function() {
-  auth.signOut().then(() => {
-    window.location.href = '/';
-  });
-};
-
-async function handleClaim() {
-  const username = claimInput.value.trim();
-  const valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
-  if (!valid) {
-    claimError.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
-    claimError.style.display = 'block';
-    return;
-  }
-  claimError.style.display = 'none';
+function getStorage() {
   try {
-    const snapshot = await db.collection('usernames').doc(username).get();
-    if (snapshot.exists) {
-      claimError.textContent = 'Username already taken. Try another.';
-      claimError.style.display = 'block';
-      return;
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { users: {}, version: ENCRYPTION_KEY };
+    var data = JSON.parse(raw);
+    if (data.version !== ENCRYPTION_KEY) {
+      return { users: {}, version: ENCRYPTION_KEY };
     }
-    sessionStorage.setItem('mailserver_claim', username);
-    window.location.href = '/signup';
-  } catch (error) {
-    claimError.textContent = 'Error checking username. Please try again.';
-    claimError.style.display = 'block';
+    return data;
+  } catch (e) {
+    return { users: {}, version: ENCRYPTION_KEY };
   }
 }
 
-claimBtn.addEventListener('click', handleClaim);
-claimInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleClaim(); });
+function saveStorage(data) {
+  data.version = ENCRYPTION_KEY;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
 
-async function updateUserCount() {
+function getUsers() {
+  return getStorage().users || {};
+}
+
+function saveUsers(users) {
+  var data = getStorage();
+  data.users = users;
+  saveStorage(data);
+}
+
+function getSession() {
   try {
-    const snapshot = await db.collection('users').get();
-    const count = snapshot.size;
-    userCountSpan.textContent = count;
-    userCountStat.textContent = count;
+    var raw = sessionStorage.getItem('mailserver_session');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function setSession(username) {
+  sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+}
+
+function clearSession() {
+  sessionStorage.removeItem('mailserver_session');
+}
+
+function isLoggedIn() {
+  var s = getSession();
+  if (!s) return false;
+  var users = getUsers();
+  return !!users[s.username];
+}
+
+function updateNav() {
+  var actions = document.getElementById('navActions');
+  var loggedIn = isLoggedIn();
+  if (loggedIn) {
+    actions.innerHTML = '<a href="/dashboard" style="text-decoration:none;"><button class="btn-nav btn-dashboard">Dashboard</button></a><a href="/inbox" style="text-decoration:none;"><button class="btn-nav btn-inbox">Inbox</button></a>';
+  } else {
+    actions.innerHTML = '<a href="/login" style="text-decoration:none;"><button class="btn-nav btn-login">Log in</button></a><a href="/signup" style="text-decoration:none;"><button class="btn-nav btn-signup">Sign up</button></a>';
+  }
+}
+
+function updateUserCount() {
+  db.collection('users').get().then((snapshot) => {
+    var count = snapshot.size;
+    document.getElementById('userCount').textContent = count;
+    document.getElementById('userCountStat').textContent = count;
     document.getElementById('domainCountStat').textContent = 1;
     document.getElementById('profileViewsStat').textContent = 0;
-  } catch (error) {
-    console.error('Error fetching user count:', error);
-  }
+  }).catch(() => {
+    var users = getUsers();
+    var count = Object.keys(users).length;
+    document.getElementById('userCount').textContent = count;
+    document.getElementById('userCountStat').textContent = count;
+    document.getElementById('domainCountStat').textContent = 1;
+    document.getElementById('profileViewsStat').textContent = 0;
+  });
 }
 
-async function renderMemberCards() {
-  try {
-    const snapshot = await db.collection('users').orderBy('createdAt', 'asc').get();
-    const users = [];
+function renderMemberCards() {
+  var track = document.getElementById('track');
+  track.innerHTML = '';
+  track.classList.remove('animate');
+  
+  db.collection('users').orderBy('createdAt', 'asc').get().then((snapshot) => {
+    var users = [];
     snapshot.forEach(doc => {
-      const data = doc.data();
+      var data = doc.data();
       users.push({ username: data.username || data.displayName || 'User' });
     });
-    track.innerHTML = '';
-    track.classList.remove('animate');
-    if (users.length === 0) return;
+    
+    if (users.length === 0) {
+      var usersLocal = getUsers();
+      var usernames = Object.keys(usersLocal);
+      if (usernames.length > 0) {
+        users = usernames.map(u => ({ username: u }));
+      } else {
+        return;
+      }
+    }
+    
     if (users.length === 1) {
-      const c = document.createElement('div');
+      var c = document.createElement('div');
       c.className = 'member-card';
-      c.innerHTML = `
-        <div class="member-num">#1</div>
-        <div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-        <div class="member-name">${users[0].username}</div>
-        <div class="member-handle">@${users[0].username}</div>
-        <div class="member-bio">No bio yet.</div>
-      `;
+      c.innerHTML = '<div class="member-num">#1</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + users[0].username + '</div><div class="member-handle">@' + users[0].username + '</div><div class="member-bio">No bio yet.</div>';
+      track.appendChild(c);
+      track.style.justifyContent = 'center';
+      return;
+    }
+    
+    track.style.justifyContent = 'flex-start';
+    var allCards = users.concat(users).concat(users);
+    for (var i = 0; i < allCards.length; i++) {
+      var user = allCards[i];
+      var num = (i % users.length) + 1;
+      var c = document.createElement('div');
+      c.className = 'member-card';
+      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + user.username + '</div><div class="member-handle">@' + user.username + '</div><div class="member-bio">No bio yet.</div>';
+      track.appendChild(c);
+    }
+    track.classList.add('animate');
+  }).catch(() => {
+    var users = getUsers();
+    var usernames = Object.keys(users);
+    if (usernames.length === 0) return;
+    if (usernames.length === 1) {
+      var c = document.createElement('div');
+      c.className = 'member-card';
+      c.innerHTML = '<div class="member-num">#1</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + usernames[0] + '</div><div class="member-handle">@' + usernames[0] + '</div><div class="member-bio">No bio yet.</div>';
       track.appendChild(c);
       track.style.justifyContent = 'center';
       return;
     }
     track.style.justifyContent = 'flex-start';
-    const allCards = users.concat(users).concat(users);
-    for (let i = 0; i < allCards.length; i++) {
-      const user = allCards[i];
-      const num = (i % users.length) + 1;
-      const c = document.createElement('div');
+    var allCards = usernames.concat(usernames).concat(usernames);
+    for (var i = 0; i < allCards.length; i++) {
+      var username = allCards[i];
+      var num = (i % usernames.length) + 1;
+      var c = document.createElement('div');
       c.className = 'member-card';
-      c.innerHTML = `
-        <div class="member-num">#${num}</div>
-        <div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-        <div class="member-name">${user.username}</div>
-        <div class="member-handle">@${user.username}</div>
-        <div class="member-bio">No bio yet.</div>
-      `;
+      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + username + '</div><div class="member-handle">@' + username + '</div><div class="member-bio">No bio yet.</div>';
       track.appendChild(c);
     }
     track.classList.add('animate');
-  } catch (error) {
-    console.error('Error rendering member cards:', error);
-  }
+  });
 }
 
-const canvas = document.getElementById('particle-canvas');
-const ctx = canvas.getContext('2d');
-function resizeCanvas() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+document.getElementById('claimBtn').addEventListener('click', function() {
+  var input = document.getElementById('claimInput');
+  var error = document.getElementById('claimError');
+  var username = input.value.trim();
+  var valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
+  if (!valid) {
+    error.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
+    error.style.display = 'block';
+    return;
+  }
+  error.style.display = 'none';
+  
+  db.collection('usernames').doc(username).get().then((snapshot) => {
+    if (snapshot.exists) {
+      error.textContent = 'Username already taken. Try another.';
+      error.style.display = 'block';
+      return;
+    }
+    sessionStorage.setItem('mailserver_claim', username);
+    window.location.href = '/signup';
+  }).catch(() => {
+    var users = getUsers();
+    if (users[username]) {
+      error.textContent = 'Username already taken. Try another.';
+      error.style.display = 'block';
+      return;
+    }
+    sessionStorage.setItem('mailserver_claim', username);
+    window.location.href = '/signup';
+  });
+});
+
+var canvas = document.getElementById('particle-canvas');
+var ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
-const particles = [];
-for (let i = 0; i < 70; i++) {
+var particles = [];
+for (var i = 0; i < 70; i++) {
   particles.push({
     x: Math.random(),
     y: Math.random(),
@@ -264,41 +323,41 @@ for (let i = 0; i < 70; i++) {
   });
 }
 function drawParticles() {
-  const W = canvas.width;
-  const H = canvas.height;
+  var W = canvas.width;
+  var H = canvas.height;
   if (!W || !H) { requestAnimationFrame(drawParticles); return; }
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(90,60,180,0.04)';
   ctx.lineWidth = 0.5;
-  for (let gx = 0; gx < W; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
-  for (let gy = 0; gy < H; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
-  const ag = ctx.createRadialGradient(W * 0.75, H * 0.5, 0, W * 0.75, H * 0.5, H * 0.65);
+  for (var gx = 0; gx < W; gx += 60) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (var gy = 0; gy < H; gy += 60) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+  var ag = ctx.createRadialGradient(W * 0.75, H * 0.5, 0, W * 0.75, H * 0.5, H * 0.65);
   ag.addColorStop(0, 'rgba(70,45,150,0.2)');
   ag.addColorStop(0.5, 'rgba(40,25,100,0.08)');
   ag.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = ag;
   ctx.fillRect(0, 0, W, H);
-  const t = Date.now() * 0.001;
-  const scanY = ((t * 45) % H);
-  const sl = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 3);
+  var t = Date.now() * 0.001;
+  var scanY = ((t * 45) % H);
+  var sl = ctx.createLinearGradient(0, scanY - 20, 0, scanY + 3);
   sl.addColorStop(0, 'rgba(110,80,255,0)');
   sl.addColorStop(1, 'rgba(110,80,255,0.045)');
   ctx.fillStyle = sl;
   ctx.fillRect(0, scanY - 20, W, 23);
-  for (let j = 0; j < particles.length; j++) {
-    const p = particles[j];
+  for (var j = 0; j < particles.length; j++) {
+    var p = particles[j];
     p.x = (p.x + p.vx + 1) % 1;
     p.y = (p.y + p.vy + 1) % 1;
     p.pulse += 0.018;
-    const alpha = (Math.sin(p.pulse) * 0.35 + 0.65) * 0.65;
+    var alpha = (Math.sin(p.pulse) * 0.35 + 0.65) * 0.65;
     ctx.beginPath();
     ctx.arc(p.x * W, p.y * H, p.r, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(155,120,255,' + alpha + ')';
     ctx.fill();
   }
-  const vg = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.1, W * 0.5, H * 0.5, H * 0.8);
+  var vg = ctx.createRadialGradient(W * 0.5, H * 0.5, H * 0.1, W * 0.5, H * 0.5, H * 0.8);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,0.6)');
   ctx.fillStyle = vg;
@@ -307,12 +366,14 @@ function drawParticles() {
 }
 drawParticles();
 
-const claimed = sessionStorage.getItem('mailserver_claim');
-if (claimed && claimInput) {
-  claimInput.value = claimed;
-}
+updateNav();
 updateUserCount();
 renderMemberCards();
+
+var claimed = sessionStorage.getItem('mailserver_claim');
+if (claimed && document.getElementById('claimInput')) {
+  document.getElementById('claimInput').value = claimed;
+}
 </script>
 </body>
 </html>
