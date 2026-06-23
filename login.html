@@ -208,7 +208,7 @@
   </div>
 
   <script>
-    const firebaseConfig = {
+    var firebaseConfig = {
       apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
       authDomain: "mailserver-life.firebaseapp.com",
       projectId: "mailserver-life",
@@ -218,7 +218,7 @@
       measurementId: "G-V216FC1QMD"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    var auth = firebase.auth();
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
     function toggle(id, btn) {
