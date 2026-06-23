@@ -31,6 +31,10 @@
     .error-msg{color:#ff6b6b;font-size:12px;margin-top:4px;display:none;text-align:center}
     .success-msg{color:#5b8ef0;font-size:12px;margin-top:4px;display:none;text-align:center}
     .domain-hint{font-size:11px;color:rgba(255,255,255,0.25);margin-top:4px;text-align:right;padding-right:4px}
+    .save-password-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px 0}
+    .save-password-row input[type="checkbox"]{width:16px;height:16px;accent-color:#5b8ef0;cursor:pointer}
+    .save-password-row label{font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;margin:0}
+    .save-password-row label:hover{color:rgba(255,255,255,0.8)}
   </style>
 </head>
 <body>
@@ -41,11 +45,11 @@
   </div>
 
   <div class="card">
-    <form id="signupForm">
+    <form id="signupForm" action="/dashboard">
       <div class="field">
-        <label for="username">Username</label>
+        <label for="username">Choose your username</label>
         <div class="input-wrap">
-          <input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" required />
+          <input type="text" id="username" name="username" autocomplete="username" placeholder="username" required />
         </div>
         <div class="domain-hint">@mailserver.life · 3-24 characters · letters, numbers, underscores</div>
       </div>
@@ -64,6 +68,11 @@
           <input type="password" id="confirm" name="confirm" autocomplete="new-password" placeholder="Confirm your password" required />
           <button class="show-btn" type="button" onclick="toggle('confirm', this)">Show</button>
         </div>
+      </div>
+
+      <div class="save-password-row">
+        <input type="checkbox" id="savePassword" checked />
+        <label for="savePassword">Save my password</label>
       </div>
 
       <div class="error-msg" id="signupError">Please fill in all fields correctly.</div>
@@ -99,6 +108,15 @@
       } else {
         input.type = 'password';
         btn.textContent = 'Show';
+      }
+    }
+
+    function saveCredentials(username, password) {
+      if (document.getElementById('savePassword').checked) {
+        localStorage.setItem('mailserver_credentials', JSON.stringify({
+          username: username,
+          password: password
+        }));
       }
     }
 
@@ -178,6 +196,7 @@
               claimedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }).then(function() {
+            saveCredentials(username, password);
             sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
             sessionStorage.removeItem('mailserver_claim');
             setTimeout(function() {
@@ -188,10 +207,13 @@
       }).catch(function(error) {
         btn.disabled = false;
         success.style.display = 'none';
+        console.error('Signup error:', error.code, error.message);
         if (error.code === 'auth/email-already-in-use') {
           error.textContent = 'This username is already registered. Please sign in.';
         } else if (error.code === 'auth/invalid-email') {
           error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
+        } else if (error.code === 'auth/weak-password') {
+          error.textContent = 'Password is too weak. Use at least 6 characters.';
         } else {
           error.textContent = 'Error creating account: ' + error.message;
         }
