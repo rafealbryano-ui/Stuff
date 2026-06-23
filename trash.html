@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trash — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --ms-bg:#0a0a0a;
+      --ms-surface:#111111;
+      --ms-card:#181818;
+      --ms-border:#2a2a2a;
+      --ms-border-hover:#3a3a3a;
+      --ms-text:#e8e8e8;
+      --ms-muted:#888;
+      --ms-accent:#4f7cff;
+      --ms-accent-dim:#1a2a6e;
+      --ms-danger:#e24b4a;
+      --ms-success:#1d9e75;
+      --ms-mono:'JetBrains Mono',monospace;
+      --ms-sans:'Inter',sans-serif;
+    }
+    body{background:var(--ms-bg);color:var(--ms-text);font-family:var(--ms-sans);font-size:14px;min-height:100vh}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;border-bottom:1px solid var(--ms-border);background:var(--ms-bg);position:sticky;top:0;z-index:100}
+    .logo{font-family:var(--ms-mono);font-size:15px;font-weight:700;color:var(--ms-text)}
+    .logo span{color:var(--ms-accent)}
+    .header-nav{display:flex;gap:8px}
+    .btn{font-family:var(--ms-sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s}
+    .btn-outline{background:transparent;border:1px solid var(--ms-border);color:var(--ms-text)}
+    .btn-outline:hover{border-color:var(--ms-border-hover);background:#1f1f1f}
+    .layout{display:flex;min-height:calc(100vh - 48px)}
+    .sidebar{width:200px;min-width:200px;border-right:1px solid var(--ms-border);padding:16px 0;background:var(--ms-bg)}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--ms-muted);cursor:pointer;transition:color .15s,background .15s}
+    .sidebar-item:hover{color:var(--ms-text);background:#161616}
+    .sidebar-item.active{color:var(--ms-text);background:#1a1a2e;border-right:2px solid var(--ms-accent)}
+    .sidebar-item i{font-size:16px}
+    .sidebar-section{font-size:11px;color:var(--ms-muted);padding:16px 20px 4px;letter-spacing:.08em;text-transform:uppercase}
+    .main{flex:1;overflow-y:auto}
+    .empty-inbox{text-align:center;padding:60px 32px;color:var(--ms-muted)}
+    .empty-inbox i{font-size:40px;margin-bottom:12px;display:block;color:#333}
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+
+<div style="min-height:100vh;background:#0a0a0a">
+
+<header class="header">
+  <a href="/" class="logo">mailserver<span>.life</span></a>
+  <nav class="header-nav">
+    <a href="/inbox.html" class="btn btn-outline">Inbox</a>
+    <a href="/settings.html" class="btn btn-outline">Settings</a>
+    <button class="btn btn-outline" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">Mail</div>
+    <a href="/inbox.html" class="sidebar-item"><i class="ti ti-inbox" aria-hidden="true"></i> Inbox</a>
+    <a href="/sent.html" class="sidebar-item"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
+    <a href="/tempmail.html" class="sidebar-item"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
+    <a href="/trash.html" class="sidebar-item active"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
+    <div class="sidebar-section">Account</div>
+    <a href="/settings.html" class="sidebar-item"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
+    <a href="/files.html" class="sidebar-item"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
+  </aside>
+
+  <main class="main">
+    <div class="empty-inbox"><i class="ti ti-trash"></i><div style="font-size:15px;font-weight:600;color:var(--ms-text);margin-bottom:6px">Trash is empty</div><div>Deleted emails will appear here.</div></div>
+  </main>
+</div>
+</div>
+
+<script>
+var firebaseConfig = {
+  apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+  authDomain: "mailserver-life.firebaseapp.com",
+  projectId: "mailserver-life",
+  storageBucket: "mailserver-life.firebasestorage.app",
+  messagingSenderId: "195734676668",
+  appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+  measurementId: "G-V216FC1QMD"
+};
+firebase.initializeApp(firebaseConfig);
+var auth = firebase.auth();
+
+auth.onAuthStateChanged(function(user) {
+  if (!user) {
+    window.location.href = '/login.html';
+    return;
+  }
+});
+
+function logout() {
+  auth.signOut().then(function() {
+    sessionStorage.removeItem('mailserver_session');
+    window.location.href = '/';
+  });
+}
+</script>
+</body>
+</html>
