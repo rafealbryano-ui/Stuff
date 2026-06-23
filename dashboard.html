@@ -202,33 +202,64 @@ var msgs = [];
 var sentMsgs = [];
 var userProfile = {};
 var currentPage = 'inbox';
+var currentTab = 'account';
 
 function getPageFromURL() {
-  var params = new URLSearchParams(window.location.search);
-  var page = params.get('page');
-  if (page) return page;
-  
   var path = window.location.pathname;
-  if (path.includes('/app/')) {
-    return path.split('/app/')[1] || 'inbox';
+  if (path.startsWith('/app/')) {
+    var page = path.replace('/app/', '');
+    if (page.includes('/')) {
+      var parts = page.split('/');
+      currentTab = parts[1] || 'account';
+      return parts[0];
+    }
+    return page || 'inbox';
   }
   return 'inbox';
 }
 
+function getTabFromURL() {
+  var path = window.location.pathname;
+  if (path.startsWith('/app/settings/')) {
+    var tab = path.replace('/app/settings/', '');
+    return tab || 'account';
+  }
+  return 'account';
+}
+
+function updateURL(page, tab) {
+  if (page === 'settings' && tab) {
+    var url = '/app/settings/' + tab;
+    window.history.pushState({ page: page, tab: tab }, '', url);
+  } else {
+    var url = '/app/' + page;
+    window.history.pushState({ page: page }, '', url);
+  }
+}
+
 function navigateTo(page) {
   event.preventDefault();
-  var currentPage = page;
-  window.history.pushState({ page: page }, '', '/dashboard.html?page=' + page);
-  switchMain(page);
+  var tab = 'account';
+  if (page === 'settings') {
+    tab = getTabFromURL() || 'account';
+  }
+  currentPage = page;
+  currentTab = tab;
+  updateURL(page, tab);
+  switchMain(page, tab);
   updateSidebar(page);
-  document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
+  var title = page.charAt(0).toUpperCase() + page.slice(1);
+  if (page === 'settings' && tab) {
+    title += ' — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
+  }
+  document.title = 'mailserver.life — ' + title;
 }
 
 function updateSidebar(page) {
   document.querySelectorAll('.sidebar-item').forEach(function(el) {
     el.classList.remove('active');
-    var href = el.getAttribute('onclick');
-    if (href && href.includes(page)) {
+    var onclick = el.getAttribute('onclick');
+    if (onclick && onclick.includes(page)) {
       el.classList.add('active');
     }
   });
@@ -255,9 +286,16 @@ function loadUserData() {
       userProfile = data;
       loadEmails();
       var page = getPageFromURL();
-      switchMain(page);
+      var tab = getTabFromURL();
+      currentPage = page;
+      currentTab = tab;
+      switchMain(page, tab);
       updateSidebar(page);
-      document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
+      var title = page.charAt(0).toUpperCase() + page.slice(1);
+      if (page === 'settings' && tab) {
+        title += ' — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
+      }
+      document.title = 'mailserver.life — ' + title;
     }
   }).catch(function(err) {
     console.error('Error loading user data:', err);
@@ -266,9 +304,16 @@ function loadUserData() {
 
 window.onpopstate = function() {
   var page = getPageFromURL();
-  switchMain(page);
+  var tab = getTabFromURL();
+  currentPage = page;
+  currentTab = tab;
+  switchMain(page, tab);
   updateSidebar(page);
-  document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
+  var title = page.charAt(0).toUpperCase() + page.slice(1);
+  if (page === 'settings' && tab) {
+    title += ' — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
+  }
+  document.title = 'mailserver.life — ' + title;
 };
 
 function showToast(msg){
@@ -422,25 +467,25 @@ function sendCompose() {
     });
 }
 
-function switchMain(s){
-  renderPage(s);
-  if (s !== 'settings' && s !== 'usernames' && s !== 'lookup') {
-    var url = '/dashboard.html?page=' + s;
-    if (window.location.pathname + window.location.search !== url) {
-      window.history.pushState({ page: s }, '', url);
-    }
-    document.title = 'mailserver.life — ' + s.charAt(0).toUpperCase() + s.slice(1);
+function switchMain(page, tab) {
+  renderPage(page, tab);
+  if (page !== 'settings') {
+    updateURL(page, null);
+    document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
+  } else {
+    updateURL(page, tab || 'account');
+    document.title = 'mailserver.life — Settings — ' + (tab || 'account').charAt(0).toUpperCase() + (tab || 'account').slice(1);
   }
 }
 
-function renderPage(s) {
+function renderPage(page, tab) {
   var el=document.getElementById('main-area');
-  if(s==='inbox') el.innerHTML=renderInbox();
-  else if(s==='settings') el.innerHTML=renderSettings();
-  else if(s==='sent') el.innerHTML=renderSent();
-  else if(s==='tempmail') el.innerHTML=renderTempmail();
-  else if(s==='trash') el.innerHTML=renderEmpty('ti-trash','Trash','Trash is empty.');
-  else if(s==='files') el.innerHTML=renderEmpty('ti-file','Files','No files uploaded.');
+  if(page==='inbox') el.innerHTML=renderInbox();
+  else if(page==='settings') el.innerHTML=renderSettings(tab || 'account');
+  else if(page==='sent') el.innerHTML=renderSent();
+  else if(page==='tempmail') el.innerHTML=renderTempmail();
+  else if(page==='trash') el.innerHTML=renderEmpty('ti-trash','Trash','Trash is empty.');
+  else if(page==='files') el.innerHTML=renderEmpty('ti-file','Files','No files uploaded.');
   attachHandlers();
 }
 
@@ -584,30 +629,33 @@ function renderTempmail(){
   '</div>';
 }
 
-function renderSettings(){
+function renderSettings(tab) {
+  currentTab = tab || 'account';
   return '<div class="page-header">'+
     '<div class="page-title">Settings</div>'+
     '<div class="user-email">' + USER_EMAIL + ' · @' + USERNAME + ' · #' + USER_ID + '</div>'+
     '<div class="tabs">'+
-      '<div class="tab active" data-tab="account" onclick="switchSettingsTab(\'account\')">Account</div>'+
-      '<div class="tab" data-tab="email" onclick="switchSettingsTab(\'email\')">Email</div>'+
-      '<div class="tab" data-tab="biopage" onclick="switchSettingsTab(\'biopage\')">Bio Page</div>'+
-      '<div class="tab" data-tab="usernames" onclick="switchSettingsTab(\'usernames\')">Usernames</div>'+
-      '<div class="tab" data-tab="lookup" onclick="switchSettingsTab(\'lookup\')">Lookup</div>'+
-      '<div class="tab" data-tab="sessions" onclick="switchSettingsTab(\'sessions\')">Sessions</div>'+
+      '<div class="tab ' + (tab === 'account' ? 'active' : '') + '" data-tab="account" onclick="switchSettingsTab(\'account\')">Account</div>'+
+      '<div class="tab ' + (tab === 'email' ? 'active' : '') + '" data-tab="email" onclick="switchSettingsTab(\'email\')">Email</div>'+
+      '<div class="tab ' + (tab === 'biopage' ? 'active' : '') + '" data-tab="biopage" onclick="switchSettingsTab(\'biopage\')">Bio Page</div>'+
+      '<div class="tab ' + (tab === 'usernames' ? 'active' : '') + '" data-tab="usernames" onclick="switchSettingsTab(\'usernames\')">Usernames</div>'+
+      '<div class="tab ' + (tab === 'lookup' ? 'active' : '') + '" data-tab="lookup" onclick="switchSettingsTab(\'lookup\')">Lookup</div>'+
+      '<div class="tab ' + (tab === 'sessions' ? 'active' : '') + '" data-tab="sessions" onclick="switchSettingsTab(\'sessions\')">Sessions</div>'+
     '</div>'+
   '</div>'+
-  '<div class="content" id="settings-content">'+renderTab('account')+'</div>';
+  '<div class="content" id="settings-content">'+renderTab(tab)+'</div>';
 }
 
 function switchSettingsTab(tab) {
+  currentTab = tab;
   document.querySelectorAll('.tab').forEach(function(t) {
     t.classList.remove('active');
   });
-  document.querySelector('.tab[data-tab="' + tab + '"]').classList.add('active');
+  var activeTab = document.querySelector('.tab[data-tab="' + tab + '"]');
+  if (activeTab) activeTab.classList.add('active');
   document.getElementById('settings-content').innerHTML = renderTab(tab);
   attachHandlers();
-  var url = '/dashboard.html?page=settings&tab=' + tab;
+  var url = '/app/settings/' + tab;
   window.history.pushState({ page: 'settings', tab: tab }, '', url);
   document.title = 'mailserver.life — Settings — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
 }
@@ -867,7 +915,6 @@ function saveProfile() {
 }
 
 function addBioLink() {
-  var container = document.getElementById('bioLinksContainer');
   var links = userProfile.bioLinks || [];
   links.push({ title: '', url: '' });
   userProfile.bioLinks = links;
