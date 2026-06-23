@@ -213,7 +213,7 @@
   </div>
 
   <div class="card">
-    <form id="loginForm" action="/dashboard">
+    <form id="loginForm">
       <div class="field">
         <label for="username">Username</label>
         <div class="input-wrap">
@@ -287,10 +287,12 @@
 
     function saveCredentials(username, password) {
       if (document.getElementById('savePassword').checked) {
-        localStorage.setItem('mailserver_credentials', JSON.stringify({
-          username: username,
-          password: password
-        }));
+        try {
+          localStorage.setItem('mailserver_credentials', JSON.stringify({
+            username: username,
+            password: password
+          }));
+        } catch(e) {}
       } else {
         localStorage.removeItem('mailserver_credentials');
       }
@@ -331,7 +333,7 @@
           var user = userCredential.user;
           saveCredentials(username, password);
           sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-          window.location.href = '/dashboard';
+          window.location.href = '/dashboard.html';
         })
         .catch(function(error) {
           btn.disabled = false;
@@ -372,6 +374,5 @@
       }
     });
   </script>
-
 </body>
 </html>
