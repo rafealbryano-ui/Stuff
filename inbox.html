@@ -296,32 +296,43 @@ function closeCompose() {
 }
 
 function sendViaMailgun(to, subject, body, fromEmail, docId) {
+  var mailgunKey = 'a072c9bc-6af7d3d1';
+  
   var formData = new FormData();
   formData.append('from', fromEmail);
   formData.append('to', to);
   formData.append('subject', subject);
   formData.append('text', body);
 
+  console.log('Sending to:', to);
+  console.log('From:', fromEmail);
+  console.log('Using key:', mailgunKey);
+
   fetch('https://api.mailgun.net/v3/mailserver.life/messages', {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + btoa('api:' + MAILGUN_KEY)
+      'Authorization': 'Basic ' + btoa('api:' + mailgunKey)
     },
     body: formData
   })
   .then(function(response) {
-    if (response.ok) {
-      showToast('Email sent to ' + to + ' ✅');
-      db.collection('emails').doc(docId).update({ sentToExternal: true });
-      closeCompose();
-      loadEmails();
-    } else {
-      throw new Error('Mailgun error: ' + response.status);
-    }
+    console.log('Response status:', response.status);
+    return response.text().then(function(text) {
+      console.log('Response body:', text);
+      if (response.ok) {
+        showToast('Email sent to ' + to + ' ✅');
+        db.collection('emails').doc(docId).update({ sentToExternal: true });
+        closeCompose();
+        loadEmails();
+        return;
+      } else {
+        throw new Error('Mailgun error: ' + response.status + ' - ' + text);
+      }
+    });
   })
   .catch(function(error) {
-    showToast('Email saved but could not deliver to ' + to);
     console.error('Mailgun error:', error);
+    showToast('Email saved but could not deliver to ' + to);
   });
 }
 
