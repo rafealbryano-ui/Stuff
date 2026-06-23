@@ -303,24 +303,33 @@ document.getElementById('claimBtn').addEventListener('click', function() {
   }
   error.style.display = 'none';
 
-  db.collection('usernames').doc(username).get().then(function(snapshot) {
-    if (snapshot.exists) {
-      error.textContent = 'Username already taken. Try another.';
-      error.style.display = 'block';
-      return;
-    }
-    sessionStorage.setItem('mailserver_claim', username);
-    window.location.href = '/signup';
-  }).catch(function() {
-    var users = getUsers();
-    if (users[username]) {
-      error.textContent = 'Username already taken. Try another.';
-      error.style.display = 'block';
-      return;
-    }
-    sessionStorage.setItem('mailserver_claim', username);
-    window.location.href = '/signup';
-  });
+  db.collection('usernames').doc(username).get()
+    .then(function(snapshot) {
+      if (snapshot.exists) {
+        error.textContent = 'Username already taken. Try another.';
+        error.style.display = 'block';
+        return Promise.reject('exists');
+      }
+      var users = getUsers();
+      if (users[username]) {
+        error.textContent = 'Username already taken. Try another.';
+        error.style.display = 'block';
+        return Promise.reject('exists');
+      }
+      sessionStorage.setItem('mailserver_claim', username);
+      window.location.href = '/signup';
+    })
+    .catch(function(err) {
+      if (err === 'exists') return;
+      var users = getUsers();
+      if (users[username]) {
+        error.textContent = 'Username already taken. Try another.';
+        error.style.display = 'block';
+        return;
+      }
+      sessionStorage.setItem('mailserver_claim', username);
+      window.location.href = '/signup';
+    });
 });
 
 var canvas = document.getElementById('particle-canvas');
