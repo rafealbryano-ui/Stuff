@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>mailserver.life — Email that minds its own business.</title>
+
+<meta property="og:title" content="mailserver.life — Email that minds its own business." />
+<meta property="og:description" content="mailserver.life is a small, private webmail service. No tracking pixels, no ad profiling — just an inbox, a disposable alias when you need one, and a server you can walk away from." />
+<meta property="og:image" content="https://mailserver.life/Assets/og-image.png" />
+<meta property="og:url" content="https://mailserver.life" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="mailserver.life" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="mailserver.life — Email that minds its own business." />
+<meta name="twitter:description" content="Private webmail with disposable aliases, self-destructing messages, and a no-signup temp inbox. No tracking, no ads, just email." />
+<meta name="twitter:image" content="https://mailserver.life/Assets/og-image.png" />
+
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
@@ -195,41 +208,53 @@ function renderMemberCards() {
   var track = document.getElementById('track');
   track.innerHTML = '';
   track.classList.remove('animate');
-  
+
   db.collection('users').orderBy('createdAt', 'asc').get().then(function(snapshot) {
     var users = [];
     snapshot.forEach(function(doc) {
       var data = doc.data();
-      users.push({ username: data.username || data.displayName || 'User' });
+      users.push({
+        username: data.username || data.displayName || 'User',
+        displayName: data.displayName || data.username || 'User',
+        bio: data.bio || 'No bio yet.',
+        userNumber: data.userNumber || 0
+      });
     });
-    
+
     if (users.length === 0) {
       var usersLocal = getUsers();
       var usernames = Object.keys(usersLocal);
       if (usernames.length > 0) {
-        users = usernames.map(function(u) { return { username: u }; });
+        users = usernames.map(function(u, i) {
+          return {
+            username: u,
+            displayName: u,
+            bio: 'No bio yet.',
+            userNumber: i + 1
+          };
+        });
       } else {
         return;
       }
     }
-    
+
     if (users.length === 1) {
       var c = document.createElement('div');
       c.className = 'member-card';
-      c.innerHTML = '<div class="member-num">#1</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + users[0].username + '</div><div class="member-handle">@' + users[0].username + '</div><div class="member-bio">No bio yet.</div>';
+      c.innerHTML = '<div class="member-num">#' + users[0].userNumber + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + users[0].displayName + '</div><div class="member-handle">@' + users[0].username + '</div><div class="member-bio">' + users[0].bio + '</div>';
       track.appendChild(c);
       track.style.justifyContent = 'center';
       return;
     }
-    
+
     track.style.justifyContent = 'flex-start';
     var allCards = users.concat(users).concat(users);
     for (var i = 0; i < allCards.length; i++) {
       var user = allCards[i];
-      var num = (i % users.length) + 1;
+      var num = user.userNumber || (i % users.length) + 1;
       var c = document.createElement('div');
       c.className = 'member-card';
-      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + user.username + '</div><div class="member-handle">@' + user.username + '</div><div class="member-bio">No bio yet.</div>';
+      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#252525" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + user.displayName + '</div><div class="member-handle">@' + user.username + '</div><div class="member-bio">' + user.bio + '</div>';
       track.appendChild(c);
     }
     track.classList.add('animate');
@@ -263,13 +288,13 @@ document.getElementById('claimBtn').addEventListener('click', function() {
   var input = document.getElementById('claimInput');
   var error = document.getElementById('claimError');
   var username = input.value.trim().toLowerCase();
-  
+
   if (!username) {
     error.textContent = 'Please enter a username.';
     error.style.display = 'block';
     return;
   }
-  
+
   var valid = /^[a-zA-Z0-9_]{3,24}$/.test(username);
   if (!valid) {
     error.textContent = 'Username must be 3–24 characters (letters, numbers, underscores).';
@@ -277,7 +302,7 @@ document.getElementById('claimBtn').addEventListener('click', function() {
     return;
   }
   error.style.display = 'none';
-  
+
   db.collection('usernames').doc(username).get().then(function(snapshot) {
     if (snapshot.exists) {
       error.textContent = 'Username already taken. Try another.';
@@ -380,6 +405,18 @@ auth.onAuthStateChanged(function(user) {
     updateNav();
   }
 });
+
+// Listen for profile updates from settings page
+window.addEventListener('storage', function(e) {
+  if (e.key === 'mailserver_profile_updated') {
+    renderMemberCards();
+  }
+});
+
+// Also check for updates every 30 seconds
+setInterval(function() {
+  renderMemberCards();
+}, 30000);
 </script>
 </body>
 </html>
