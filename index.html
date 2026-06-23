@@ -374,6 +374,17 @@ var claimed = sessionStorage.getItem('mailserver_claim');
 if (claimed && document.getElementById('claimInput')) {
   document.getElementById('claimInput').value = claimed;
 }
+
+auth.onAuthStateChanged(function(user) {
+  if (user) {
+    var username = user.displayName || user.email.split('@')[0];
+    setSession(username);
+    updateNav();
+  } else {
+    clearSession();
+    updateNav();
+  }
+});
 </script>
 </body>
 </html>
