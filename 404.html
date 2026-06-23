@@ -6,9 +6,22 @@
   <title>Redirecting...</title>
   <script>
     var path = window.location.pathname;
+    var fullPath = window.location.pathname + window.location.search;
     
     if (path.startsWith('/app/')) {
-      window.location.replace('/dashboard.html?page=' + path.replace('/app/', ''));
+      var page = path.replace('/app/', '');
+      if (page.includes('/')) {
+        var parts = page.split('/');
+        var mainPage = parts[0];
+        var tab = parts[1] || '';
+        if (mainPage === 'settings' && tab) {
+          window.location.replace('/dashboard.html?page=' + mainPage + '&tab=' + tab);
+        } else {
+          window.location.replace('/dashboard.html?page=' + page);
+        }
+      } else {
+        window.location.replace('/dashboard.html?page=' + page);
+      }
     } else if (!path.includes('.') && path !== '/' && path !== '') {
       window.location.replace(path + '.html');
     } else if (path === '/' || path === '') {
