@@ -8,6 +8,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       min-height: 100vh;
       background: #0e0e0e;
@@ -18,21 +19,25 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       padding: 40px 20px;
     }
+
     .brand {
       text-align: center;
       margin-bottom: 32px;
     }
+
     .brand h1 {
       font-size: 32px;
       font-weight: 700;
       color: #fff;
       letter-spacing: -0.5px;
     }
+
     .brand p {
       font-size: 13px;
       color: rgba(255, 255, 255, 0.4);
       margin-top: 6px;
     }
+
     .card {
       width: 100%;
       max-width: 340px;
@@ -41,15 +46,18 @@
       border-radius: 12px;
       padding: 28px 24px;
     }
+
     .field {
       margin-bottom: 16px;
     }
+
     .field label {
       display: block;
       font-size: 12px;
       color: rgba(255, 255, 255, 0.5);
       margin-bottom: 6px;
     }
+
     .input-wrap {
       display: flex;
       align-items: center;
@@ -58,9 +66,11 @@
       border-radius: 7px;
       overflow: hidden;
     }
+
     .input-wrap:focus-within {
       border-color: rgba(255, 255, 255, 0.3);
     }
+
     .input-wrap input {
       flex: 1;
       background: transparent;
@@ -71,9 +81,11 @@
       font-size: 14px;
       font-family: inherit;
     }
+
     .input-wrap input::placeholder {
       color: rgba(255, 255, 255, 0.15);
     }
+
     .show-btn {
       background: none;
       border: none;
@@ -84,9 +96,11 @@
       padding: 0 12px;
       height: 40px;
     }
+
     .show-btn:hover {
       color: rgba(255, 255, 255, 0.65);
     }
+
     .btn-signin {
       width: 100%;
       padding: 11px;
@@ -101,13 +115,16 @@
       margin-top: 4px;
       transition: background 0.15s;
     }
+
     .btn-signin:hover {
       background: #e0e0e0;
     }
+
     .btn-signin:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
+
     .footer {
       text-align: center;
       margin-top: 18px;
@@ -117,22 +134,27 @@
       flex-direction: column;
       gap: 8px;
     }
+
     .footer a {
       color: #5b8ef0;
       text-decoration: none;
       font-weight: 500;
     }
+
     .footer a:hover {
       text-decoration: underline;
     }
+
     .forgot a {
       color: rgba(255, 255, 255, 0.5);
       font-weight: 600;
       text-decoration: none;
     }
+
     .forgot a:hover {
       color: #fff;
     }
+
     .error-msg {
       color: #ff6b6b;
       font-size: 13px;
@@ -140,6 +162,7 @@
       display: none;
       text-align: center;
     }
+
     .success-msg {
       color: #5b8ef0;
       font-size: 13px;
@@ -211,6 +234,7 @@
 
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
+
       var email = document.getElementById('email').value.trim();
       var password = document.getElementById('password').value;
       var error = document.getElementById('loginError');
@@ -231,18 +255,17 @@
       btn.disabled = true;
 
       auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
+        .then(function(userCredential) {
           var user = userCredential.user;
           var username = user.displayName || email.split('@')[0];
           sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
           window.location.href = '/dashboard';
         })
-        .catch((error) => {
+        .catch(function(error) {
           btn.disabled = false;
           success.style.display = 'none';
           error.textContent = 'Invalid email or password. Please try again.';
           error.style.display = 'block';
-          console.error('Login error:', error.code, error.message);
         });
     });
 
