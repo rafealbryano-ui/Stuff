@@ -117,3 +117,147 @@
     .btn-reset:hover {
       background: #e0e0e0;
     }
+
+    .btn-reset:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .success {
+      display: none;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .success-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .success p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.45);
+      line-height: 1.6;
+    }
+
+    .success p span {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+      text-align: center;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .footer a {
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <h1>mailserver.life</h1>
+    <p>Private. Simple. Yours.</p>
+  </div>
+
+  <div class="card">
+    <div id="form-view">
+      <p class="card-title">Reset your password</p>
+      <p class="card-sub">Enter your email and we'll send a password reset link.</p>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" />
+        </div>
+      </div>
+
+      <div class="error-msg" id="resetError">Email not found. Please try again.</div>
+      <button class="btn-reset" type="button" id="resetBtn" onclick="handleReset()">Send reset link</button>
+    </div>
+
+    <div class="success" id="success-view">
+      <div class="success-icon">✉️</div>
+      <p>If <span id="entered-user"></span> has an account, a password reset link is on its way.</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="/login">← Back to sign in</a>
+  </div>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+      authDomain: "mailserver-life.firebaseapp.com",
+      projectId: "mailserver-life",
+      storageBucket: "mailserver-life.firebasestorage.app",
+      messagingSenderId: "195734676668",
+      appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+      measurementId: "G-V216FC1QMD"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var auth = firebase.auth();
+
+    function handleReset() {
+      var email = document.getElementById('email').value.trim();
+      var error = document.getElementById('resetError');
+      var btn = document.getElementById('resetBtn');
+      
+      if (!email) {
+        error.textContent = 'Please enter your email.';
+        error.style.display = 'block';
+        return;
+      }
+
+      error.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      auth.sendPasswordResetEmail(email)
+        .then(function() {
+          document.getElementById('entered-user').textContent = email;
+          document.getElementById('form-view').style.display = 'none';
+          document.getElementById('success-view').style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Send reset link';
+        })
+        .catch(function(error) {
+          btn.disabled = false;
+          btn.textContent = 'Send reset link';
+          if (error.code === 'auth/user-not-found') {
+            error.textContent = 'No account found with this email.';
+          } else {
+            error.textContent = 'Error sending reset email. Please try again.';
+          }
+          error.style.display = 'block';
+        });
+    }
+
+    document.getElementById('email').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        handleReset();
+      }
+    });
+  </script>
+
+</body>
+</html>
