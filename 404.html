@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Redirecting...</title>
   <script>
-    const path = window.location.pathname;
+    var path = window.location.pathname;
+    var page = path.split('/').pop();
     
-    if (!path.includes('.') && path !== '/') {
-      window.location.replace(path + '.html');
+    if (!page.includes('.') && page !== '' && page !== 'index') {
+      window.location.replace(page + '.html');
+    } else if (path === '/' || path === '') {
+      window.location.replace('/index.html');
     }
   </script>
 </head>
