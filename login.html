@@ -170,6 +170,13 @@
       display: none;
       text-align: center;
     }
+
+    .domain-hint {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.25);
+      margin-top: 4px;
+      padding-right: 4px;
+    }
   </style>
 </head>
 <body>
@@ -182,10 +189,11 @@
   <div class="card">
     <form id="loginForm">
       <div class="field">
-        <label for="email">Email</label>
+        <label for="username">Username</label>
         <div class="input-wrap">
-          <input type="email" id="email" name="email" autocomplete="email" placeholder="Enter your email" required />
+          <input type="text" id="username" name="username" autocomplete="username" placeholder="Enter your username" required />
         </div>
+        <div class="domain-hint">@mailserver.life</div>
       </div>
 
       <div class="field">
@@ -196,7 +204,7 @@
         </div>
       </div>
 
-      <div class="error-msg" id="loginError">Invalid email or password.</div>
+      <div class="error-msg" id="loginError">Invalid username or password.</div>
       <div class="success-msg" id="loginSuccess">Logging in...</div>
       <button type="submit" class="btn-signin" id="loginBtn">Sign in</button>
     </form>
@@ -235,7 +243,7 @@
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      var email = document.getElementById('email').value.trim();
+      var username = document.getElementById('username').value.trim().toLowerCase();
       var password = document.getElementById('password').value;
       var error = document.getElementById('loginError');
       var success = document.getElementById('loginSuccess');
@@ -244,11 +252,13 @@
       error.style.display = 'none';
       success.style.display = 'none';
 
-      if (!email || !password) {
-        error.textContent = 'Please enter your email and password.';
+      if (!username || !password) {
+        error.textContent = 'Please enter your username and password.';
         error.style.display = 'block';
         return;
       }
+
+      var email = username + '@mailserver.life';
 
       success.style.display = 'block';
       success.textContent = 'Logging in...';
@@ -257,21 +267,20 @@
       auth.signInWithEmailAndPassword(email, password)
         .then(function(userCredential) {
           var user = userCredential.user;
-          var username = user.displayName || email.split('@')[0];
           sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
           window.location.href = '/dashboard';
         })
         .catch(function(error) {
           btn.disabled = false;
           success.style.display = 'none';
-          error.textContent = 'Invalid email or password. Please try again.';
+          error.textContent = 'Invalid username or password. Please try again.';
           error.style.display = 'block';
         });
     });
 
     var claimed = sessionStorage.getItem('mailserver_claim');
     if (claimed) {
-      document.getElementById('email').value = claimed + '@mailserver.life';
+      document.getElementById('username').value = claimed;
       sessionStorage.removeItem('mailserver_claim');
     }
   </script>
