@@ -105,7 +105,7 @@
 </footer>
 
 <script>
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
   authDomain: "mailserver-life.firebaseapp.com",
   projectId: "mailserver-life",
@@ -115,8 +115,8 @@ const firebaseConfig = {
   measurementId: "G-V216FC1QMD"
 };
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+var auth = firebase.auth();
+var db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 var ENCRYPTION_KEY = 'XL!KD_USERAKFLAP';
@@ -187,13 +187,13 @@ function updateNav() {
 }
 
 function updateUserCount() {
-  db.collection('users').get().then((snapshot) => {
+  db.collection('users').get().then(function(snapshot) {
     var count = snapshot.size;
     document.getElementById('userCount').textContent = count;
     document.getElementById('userCountStat').textContent = count;
     document.getElementById('domainCountStat').textContent = 1;
     document.getElementById('profileViewsStat').textContent = 0;
-  }).catch(() => {
+  }).catch(function() {
     var users = getUsers();
     var count = Object.keys(users).length;
     document.getElementById('userCount').textContent = count;
@@ -208,9 +208,9 @@ function renderMemberCards() {
   track.innerHTML = '';
   track.classList.remove('animate');
   
-  db.collection('users').orderBy('createdAt', 'asc').get().then((snapshot) => {
+  db.collection('users').orderBy('createdAt', 'asc').get().then(function(snapshot) {
     var users = [];
-    snapshot.forEach(doc => {
+    snapshot.forEach(function(doc) {
       var data = doc.data();
       users.push({ username: data.username || data.displayName || 'User' });
     });
@@ -219,7 +219,7 @@ function renderMemberCards() {
       var usersLocal = getUsers();
       var usernames = Object.keys(usersLocal);
       if (usernames.length > 0) {
-        users = usernames.map(u => ({ username: u }));
+        users = usernames.map(function(u) { return { username: u }; });
       } else {
         return;
       }
@@ -245,7 +245,7 @@ function renderMemberCards() {
       track.appendChild(c);
     }
     track.classList.add('animate');
-  }).catch(() => {
+  }).catch(function() {
     var users = getUsers();
     var usernames = Object.keys(users);
     if (usernames.length === 0) return;
@@ -283,7 +283,7 @@ document.getElementById('claimBtn').addEventListener('click', function() {
   }
   error.style.display = 'none';
   
-  db.collection('usernames').doc(username).get().then((snapshot) => {
+  db.collection('usernames').doc(username).get().then(function(snapshot) {
     if (snapshot.exists) {
       error.textContent = 'Username already taken. Try another.';
       error.style.display = 'block';
@@ -291,7 +291,7 @@ document.getElementById('claimBtn').addEventListener('click', function() {
     }
     sessionStorage.setItem('mailserver_claim', username);
     window.location.href = '/signup';
-  }).catch(() => {
+  }).catch(function() {
     var users = getUsers();
     if (users[username]) {
       error.textContent = 'Username already taken. Try another.';
