@@ -238,7 +238,7 @@
       }
 
       if (!/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
-        error.textContent = 'Invalid username format.';
+        error.textContent = 'Invalid username format. Use only letters, numbers, and underscores.';
         error.style.display = 'block';
         return;
       }
@@ -261,6 +261,7 @@
         .catch(function(error) {
           btn.disabled = false;
           btn.textContent = 'Send reset link';
+          console.error('Reset error:', error.code, error.message);
           if (error.code === 'auth/user-not-found') {
             error.textContent = 'No account found with this username.';
           } else {
