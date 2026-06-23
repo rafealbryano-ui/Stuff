@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --ms-bg:#0a0a0a;
+      --ms-surface:#111111;
+      --ms-card:#181818;
+      --ms-border:#2a2a2a;
+      --ms-border-hover:#3a3a3a;
+      --ms-text:#e8e8e8;
+      --ms-muted:#888;
+      --ms-accent:#4f7cff;
+      --ms-accent-dim:#1a2a6e;
+      --ms-danger:#e24b4a;
+      --ms-success:#1d9e75;
+      --ms-mono:'JetBrains Mono',monospace;
+      --ms-sans:'Inter',sans-serif;
+    }
+    body{background:var(--ms-bg);color:var(--ms-text);font-family:var(--ms-sans);font-size:14px;min-height:100vh}
+    a{color:var(--ms-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;border-bottom:1px solid var(--ms-border);background:var(--ms-bg);position:sticky;top:0;z-index:100}
+    .logo{font-family:var(--ms-mono);font-size:15px;font-weight:700;color:var(--ms-text)}
+    .logo span{color:var(--ms-accent)}
+    .header-nav{display:flex;gap:8px}
+    .btn{font-family:var(--ms-sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s}
+    .btn-outline{background:transparent;border:1px solid var(--ms-border);color:var(--ms-text)}
+    .btn-outline:hover{border-color:var(--ms-border-hover);background:#1f1f1f}
+    .btn-primary{background:var(--ms-accent);border:1px solid var(--ms-accent);color:#fff}
+    .btn-primary:hover{background:#3d6aee}
+    .btn-danger{background:transparent;border:1px solid var(--ms-danger);color:var(--ms-danger)}
+    .btn-danger:hover{background:rgba(226,75,74,.1)}
+    .layout{display:flex;min-height:calc(100vh - 48px)}
+    .sidebar{width:200px;min-width:200px;border-right:1px solid var(--ms-border);padding:16px 0;background:var(--ms-bg)}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--ms-muted);cursor:pointer;transition:color .15s,background .15s}
+    .sidebar-item:hover{color:var(--ms-text);background:#161616}
+    .sidebar-item.active{color:var(--ms-text);background:#1a1a2e;border-right:2px solid var(--ms-accent)}
+    .sidebar-item i{font-size:16px}
+    .sidebar-section{font-size:11px;color:var(--ms-muted);padding:16px 20px 4px;letter-spacing:.08em;text-transform:uppercase}
+    .main{flex:1;overflow-y:auto}
+    .page-header{padding:28px 32px 0}
+    .page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+    .page-sub{font-size:13px;color:var(--ms-muted)}
+    .tabs{display:flex;gap:0;border-bottom:1px solid var(--ms-border);margin-top:20px;flex-wrap:wrap}
+    .tab{padding:10px 18px;font-size:13px;color:var(--ms-muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;text-decoration:none}
+    .tab:hover{color:var(--ms-text)}
+    .tab.active{color:var(--ms-accent);border-bottom-color:var(--ms-accent)}
+    .content{padding:24px 32px}
+    .card{background:var(--ms-card);border:1px solid var(--ms-border);border-radius:10px;padding:20px;margin-bottom:16px}
+    .card-title{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--ms-text)}
+    .card-sub{font-size:13px;color:var(--ms-muted);margin-bottom:16px;line-height:1.5}
+    .card-danger{border-color:rgba(226,75,74,.4)}
+    label{display:block;font-size:12px;color:var(--ms-muted);margin-bottom:6px;margin-top:14px}
+    label:first-child{margin-top:0}
+    input[type=text],input[type=password],input[type=email],select,textarea{width:100%;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:8px 12px;color:var(--ms-text);font-family:var(--ms-sans);font-size:13px;outline:none;transition:border-color .15s}
+    input:focus,select:focus,textarea:focus{border-color:var(--ms-accent)}
+    .input-row{position:relative}
+    .input-show{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ms-muted);cursor:pointer}
+    .input-show:hover{color:var(--ms-text)}
+    textarea{resize:vertical;min-height:80px}
+    .toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+    .toggle{width:36px;height:20px;border-radius:10px;background:var(--ms-border);position:relative;transition:background .2s;flex-shrink:0}
+    .toggle.on{background:var(--ms-accent)}
+    .toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
+    .toggle.on::after{left:18px}
+    .toggle-label{font-size:13px;color:var(--ms-text)}
+    .handle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ms-border)}
+    .handle-row:last-child{border-bottom:none}
+    .handle-name{font-family:var(--ms-mono);font-size:13px;color:var(--ms-text)}
+    .badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#1a2a6e;color:var(--ms-accent);font-weight:500;margin-left:6px}
+    .handle-actions{display:flex;gap:6px}
+    .btn-sm{font-size:12px;padding:4px 10px;border-radius:5px}
+    .color-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+    .color-swatch{width:28px;height:28px;border-radius:5px;border:1px solid var(--ms-border);cursor:pointer;flex-shrink:0}
+    .slider-row{display:flex;align-items:center;gap:12px}
+    .slider-row input[type=range]{flex:1;accent-color:var(--ms-accent)}
+    .slider-val{font-family:var(--ms-mono);font-size:13px;color:var(--ms-muted);min-width:40px;text-align:right}
+    .seg{display:flex;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden}
+    .seg-opt{flex:1;text-align:center;padding:7px;font-size:12px;color:var(--ms-muted);cursor:pointer;transition:background .15s,color .15s}
+    .seg-opt.active{background:var(--ms-card);color:var(--ms-text);font-weight:500}
+    .lookup-result{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:16px;margin-top:12px;display:none}
+    .lookup-result.show{display:block}
+    .user-email{font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:2px}
+    .toast{position:fixed;bottom:20px;right:20px;background:#1f1f2e;border:1px solid var(--ms-accent);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--ms-text);z-index:999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .bio-preview-frame{background:linear-gradient(135deg,#0d0d1a 0%,#0a0a0a 100%);border-radius:10px;padding:40px 20px;text-align:center;border:1px solid var(--ms-border)}
+    .bio-avatar{width:64px;height:64px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--ms-accent);margin:0 auto 12px}
+    .bio-name{font-size:18px;font-weight:600;color:var(--ms-text);margin-bottom:4px}
+    .bio-handle{font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono)}
+    .bio-links{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:280px;margin-left:auto;margin-right:auto}
+    .bio-link-btn{background:#1f1f1f;border:1px solid var(--ms-border);border-radius:8px;padding:10px;font-size:13px;color:var(--ms-text);cursor:pointer;transition:background .15s}
+    .bio-link-btn:hover{background:#252525}
+    .profile-upload-btn{position:relative;overflow:hidden;display:inline-block}
+    .profile-upload-btn input[type="file"]{position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer}
+    .bio-avatar-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--ms-accent)}
+    .session-card{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+    .session-device{font-weight:600;color:var(--ms-text);margin-bottom:4px;font-size:13px}
+    .session-meta{color:var(--ms-muted);font-size:12px;line-height:1.6}
+    .session-current{font-size:11px;color:var(--ms-success);background:#0a2e1e;padding:2px 7px;border-radius:4px;margin-left:8px}
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+
+<div style="min-height:100vh;background:#0a0a0a">
+
+<header class="header">
+  <a href="/" class="logo">mailserver<span>.life</span></a>
+  <nav class="header-nav">
+    <a href="/inbox.html" class="btn btn-outline">Inbox</a>
+    <a href="/settings.html" class="btn btn-outline">Settings</a>
+    <button class="btn btn-outline" onclick="logout()">Logout</button>
+  </nav>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">Mail</div>
+    <a href="/inbox.html" class="sidebar-item"><i class="ti ti-inbox" aria-hidden="true"></i> Inbox</a>
+    <a href="/sent.html" class="sidebar-item"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
+    <a href="/tempmail.html" class="sidebar-item"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
+    <a href="/trash.html" class="sidebar-item"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
+    <div class="sidebar-section">Account</div>
+    <a href="/settings.html" class="sidebar-item active"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
+    <a href="/files.html" class="sidebar-item"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <div class="page-title">Settings</div>
+      <div class="user-email" id="userEmail">Loading...</div>
+      <div class="tabs" id="settingsTabs">
+        <a href="/settings.html?tab=account" class="tab active" data-tab="account">Account</a>
+        <a href="/settings.html?tab=email" class="tab" data-tab="email">Email</a>
+        <a href="/settings.html?tab=biopage" class="tab" data-tab="biopage">Bio Page</a>
+        <a href="/settings.html?tab=usernames" class="tab" data-tab="usernames">Usernames</a>
+        <a href="/settings.html?tab=lookup" class="tab" data-tab="lookup">Lookup</a>
+        <a href="/settings.html?tab=sessions" class="tab" data-tab="sessions">Sessions</a>
+      </div>
+    </div>
+    <div class="content" id="settingsContent"></div>
+  </main>
+</div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+<script>
+var firebaseConfig = {
+  apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+  authDomain: "mailserver-life.firebaseapp.com",
+  projectId: "mailserver-life",
+  storageBucket: "mailserver-life.firebasestorage.app",
+  messagingSenderId: "195734676668",
+  appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+  measurementId: "G-V216FC1QMD"
+};
+firebase.initializeApp(firebaseConfig);
+var auth = firebase.auth();
+var db = firebase.firestore();
+var storage = firebase.storage();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+var D = 'mailserver.life';
+var USERNAME = '';
+var USER_ID = 0;
+var USER_EMAIL = '';
+var USER_UID = '';
+var USERS_LIST = [];
+var userProfile = {};
+
+function getTabFromURL() {
+  var params = new URLSearchParams(window.location.search);
+  return params.get('tab') || 'account';
+}
+
+function updateActiveTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.remove('active');
+    if (t.dataset.tab === tab) {
+      t.classList.add('active');
+    }
+  });
+}
+
+function showToast(msg){
+  var el=document.getElementById('toast-el');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show')},3000);
+}
+
+function logout() {
+  auth.signOut().then(function() {
+    sessionStorage.removeItem('mailserver_session');
+    window.location.href = '/';
+  });
+}
+
+auth.onAuthStateChanged(function(user) {
+  if (!user) {
+    window.location.href = '/login.html';
+    return;
+  }
+  USER_UID = user.uid;
+  USER_EMAIL = user.email;
+  USERNAME = user.displayName || user.email.split('@')[0];
+  loadUserData();
+});
+
+function loadUserData() {
+  db.collection('users').doc(USER_UID).get().then(function(doc) {
+    if (doc.exists) {
+      var data = doc.data();
+      USERNAME = data.username || USERNAME;
+      USERS_LIST = data.handles || [USERNAME];
+      USER_ID = data.userNumber || 0;
+      userProfile = data;
+      
+      document.getElementById('userEmail').textContent = USER_EMAIL + ' · @' + USERNAME + ' · #' + USER_ID;
+      
+      var tab = getTabFromURL();
+      updateActiveTab(tab);
+      renderTab(tab);
+    }
+  }).catch(function(err) {
+    console.error('Error loading user data:', err);
+  });
+}
+
+function renderTab(tab) {
+  var container = document.getElementById('settingsContent');
+  if (tab === 'account') container.innerHTML = renderAccount();
+  else if (tab === 'email') container.innerHTML = renderEmail();
+  else if (tab === 'biopage') container.innerHTML = renderBio();
+  else if (tab === 'usernames') container.innerHTML = renderUsernames();
+  else if (tab === 'lookup') container.innerHTML = renderLookup();
+  else if (tab === 'sessions') container.innerHTML = renderSessions();
+  attachHandlers();
+}
+
+function renderAccount(){
+  return '<div class="card">'+
+    '<div class="card-title">Account</div>'+
+    '<div style="font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:4px">@' + USERNAME + '@' + D + ' · #' + USER_ID + '</div>'+
+    '<div style="font-size:12px;color:var(--ms-muted);margin-top:4px">' + USER_EMAIL + '</div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Language</div>'+
+    '<div style="margin-top:10px"><select><option>English</option><option>Spanish</option><option>French</option><option>German</option></select></div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Change Password</div>'+
+    '<div class="card-sub">Password changes are managed through Firebase. Use the "Forgot Password" link on the login page to reset your password.</div>'+
+    '<button class="btn btn-outline" onclick="window.location.href=\'/forgot.html\'">Reset Password via Email</button>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Discord</div>'+
+    '<div class="card-sub">Connect your Discord to manage this account.</div>'+
+    '<button class="btn btn-outline" onclick="showToast(\'Redirecting to Discord OAuth…\')">Connect with Discord</button>'+
+  '</div>'+
+  '<div class="card card-danger">'+
+    '<div class="card-title" style="color:var(--ms-danger)">Delete Account</div>'+
+    '<div class="card-sub">This permanently deletes your account and all mail. Type DELETE to confirm.</div>'+
+    '<input type="text" placeholder="DELETE" id="del-confirm">'+
+    '<button class="btn btn-danger" style="margin-top:12px" onclick="deleteAccount()">Delete Account</button>'+
+  '</div>';
+}
+
+function deleteAccount() {
+  var v=document.getElementById('del-confirm');
+  if(!v || v.value !== 'DELETE') {
+    showToast('Type DELETE to confirm.');
+    return;
+  }
+  
+  if (confirm('Are you sure you want to permanently delete your account?')) {
+    var user = auth.currentUser;
+    if (!user) return;
+    
+    db.collection('users').doc(user.uid).delete()
+      .then(function() {
+        return db.collection('usernames').doc(USERNAME).delete();
+      })
+      .then(function() {
+        return user.delete();
+      })
+      .then(function() {
+        showToast('Account deleted successfully.');
+        sessionStorage.removeItem('mailserver_session');
+        setTimeout(function() {
+          window.location.href = '/';
+        }, 1500);
+      })
+      .catch(function(error) {
+        showToast('Error deleting account: ' + error.message);
+      });
+  }
+}
+
+function renderEmail(){
+  return '<div class="card">'+
+    '<div class="card-title">Recovery Email</div>'+
+    '<div class="card-sub">Used only to send a password reset link if you forget your password.</div>'+
+    '<label>Recovery Email</label>'+
+    '<input type="email" id="recoveryEmail" placeholder="Enter recovery email" value="' + (userProfile.recoveryEmail || '') + '">'+
+    '<button class="btn btn-outline" style="margin-top:12px" onclick="saveRecoveryEmail()">Save Recovery Email</button>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Alias</div>'+
+    '<div class="card-sub">One alias address that delivers straight into this inbox.</div>'+
+    '<div style="display:flex;gap:8px;align-items:center">'+
+      '<input type="text" id="aliasField" value="' + (userProfile.alias || '') + '" placeholder="alias" style="flex:1">'+
+      '<button class="btn btn-primary" onclick="generateAlias()">Generate</button>'+
+    '</div>'+
+    '<div style="margin-top:8px;font-size:12px;color:var(--ms-muted)">' + (userProfile.alias ? 'Current alias: ' + userProfile.alias + '@' + D : 'No alias set') + '</div>'+
+  '</div>';
+}
+
+function saveRecoveryEmail() {
+  var email = document.getElementById('recoveryEmail').value.trim();
+  if (!email) {
+    showToast('Please enter a recovery email.');
+    return;
+  }
+  db.collection('users').doc(USER_UID).update({ recoveryEmail: email })
+    .then(function() {
+      userProfile.recoveryEmail = email;
+      showToast('Recovery email saved! ✅');
+    })
+    .catch(function(error) {
+      showToast('Error saving: ' + error.message);
+    });
+}
+
+function generateAlias() {
+  var alias = document.getElementById('aliasField').value.trim();
+  if (!alias) {
+    alias = USERNAME + '_' + Math.random().toString(36).substring(2, 6);
+    document.getElementById('aliasField').value = alias;
+  }
+  
+  db.collection('users').doc(USER_UID).update({ alias: alias })
+    .then(function() {
+      userProfile.alias = alias;
+      showToast('Alias generated: ' + alias + '@' + D + ' ✅');
+      renderTab('email');
+    })
+    .catch(function(error) {
+      showToast('Error: ' + error.message);
+    });
+}
+
+function renderBio(){
+  var avatarUrl = userProfile.avatarUrl || '';
+  var displayName = userProfile.displayName || USERNAME;
+  var bio = userProfile.bio || '';
+  var accentColor = userProfile.accentColor || '#4f7cff';
+  var socials = userProfile.socials || {};
+  
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
+    '<div>'+
+    '<div class="card">'+
+      '<div class="card-title">Public Profile</div>'+
+      '<div class="card-sub">Shown at ' + D + '/' + USERNAME + ' and ' + D + '/id/' + USER_ID + '.</div>'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
+        '<div style="position:relative">'+
+          (avatarUrl ? '<img src="' + avatarUrl + '" class="bio-avatar-img">' : 
+            '<div style="width:64px;height:64px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:var(--ms-accent)">' + USERNAME[0].toUpperCase() + '</div>') +
+          '<div class="profile-upload-btn" style="position:absolute;bottom:-4px;right:-4px;background:var(--ms-accent);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--ms-bg)">'+
+            '<i class="ti ti-camera" style="font-size:12px;color:#fff"></i>'+
+            '<input type="file" accept="image/*" onchange="uploadAvatar(event)">'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<label>Display Name</label><input type="text" id="displayNameInput" value="' + displayName + '" placeholder="Display name">'+
+      '<label>Bio</label><textarea id="bioInput" placeholder="Say something about yourself…">' + bio + '</textarea>'+
+      '<label>Profile Accent Color</label>'+
+      '<div class="color-row">'+
+        '<div class="color-swatch" style="background:' + accentColor + '" onclick="document.getElementById(\'colorPicker\').click()"></div>'+
+        '<input type="color" id="colorPicker" value="' + accentColor + '" style="width:60px;height:40px;padding:2px;cursor:pointer" onchange="updateColor(this.value)">'+
+        '<input type="text" id="colorValue" value="' + accentColor + '" style="width:100px">'+
+      '</div>'+
+      '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="saveProfile()">Save Profile</button>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Bio Links</div>'+
+      '<div class="card-sub">Up to 5 links shown on your profile page.</div>'+
+      '<div id="bioLinksContainer">'+
+        (userProfile.bioLinks && userProfile.bioLinks.length ? 
+          userProfile.bioLinks.map(function(link, i) {
+            return '<div style="display:flex;gap:6px;margin-bottom:8px">'+
+              '<input type="text" placeholder="Title" value="' + (link.title || '') + '" style="width:120px" id="linkTitle_' + i + '">'+
+              '<input type="text" placeholder="https://…" value="' + (link.url || '') + '" style="flex:1" id="linkUrl_' + i + '">'+
+              '<button class="btn btn-danger btn-sm" onclick="removeBioLink(' + i + ')">×</button>'+
+            '</div>';
+          }).join('') : 
+          '<div style="color:var(--ms-muted);font-size:13px;padding:8px 0">No links added yet.</div>'
+        ) +
+      '</div>'+
+      '<button class="btn btn-outline btn-sm" onclick="addBioLink()">+ Add Link</button>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Socials</div>'+
+      '<div class="card-sub">Icon links shown on your profile.</div>'+
+      '<label>Discord</label><input type="text" id="socialDiscord" placeholder="https://discord.gg/..." value="' + (socials.discord || '') + '">'+
+      '<label>X / Twitter</label><input type="text" id="socialX" placeholder="https://x.com/..." value="' + (socials.x || '') + '">'+
+      '<label>Instagram</label><input type="text" id="socialInstagram" placeholder="https://instagram.com/..." value="' + (socials.instagram || '') + '">'+
+      '<label>GitHub</label><input type="text" id="socialGithub" placeholder="https://github.com/..." value="' + (socials.github || '') + '">'+
+      '<label>YouTube</label><input type="text" id="socialYoutube" placeholder="https://youtube.com/..." value="' + (socials.youtube || '') + '">'+
+      '<label>TikTok</label><input type="text" id="socialTiktok" placeholder="https://tiktok.com/..." value="' + (socials.tiktok || '') + '">'+
+      '<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="saveSocials()">Save Socials</button>'+
+    '</div>'+
+    '</div>'+
+    '<div>'+
+    '<div style="position:sticky;top:16px">'+
+    '<div class="card">'+
+      '<div class="card-title" style="margin-bottom:12px">Preview</div>'+
+      '<div class="bio-preview-frame" style="border-color:' + accentColor + '">'+
+        (avatarUrl ? '<img src="' + avatarUrl + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:2px solid ' + accentColor + '">' :
+          '<div class="bio-avatar" style="background:' + accentColor + '20;color:' + accentColor + '">' + (displayName ? displayName[0].toUpperCase() : USERNAME[0].toUpperCase()) + '</div>') +
+        '<div class="bio-name" style="color:' + accentColor + '">' + displayName + '</div>'+
+        '<div class="bio-handle">@' + USERNAME + ' · ' + D + ' · #' + USER_ID + '</div>'+
+        '<div style="font-size:13px;color:var(--ms-muted);margin-top:8px;max-width:280px;margin-left:auto;margin-right:auto">' + (bio || 'No bio yet.') + '</div>'+
+        (userProfile.bioLinks && userProfile.bioLinks.length ? 
+          '<div class="bio-links">' + userProfile.bioLinks.map(function(link) {
+            return '<a href="' + link.url + '" target="_blank" class="bio-link-btn">' + link.title + '</a>';
+          }).join('') + '</div>' : '') +
+        '<div style="display:flex;justify-content:center;gap:16px;margin-top:20px">'+
+          (socials.discord ? '<a href="' + socials.discord + '" target="_blank"><i class="ti ti-brand-discord" style="font-size:20px;color:#5865f2"></i></a>' : '') +
+          (socials.x ? '<a href="' + socials.x + '" target="_blank"><i class="ti ti-brand-x" style="font-size:20px;color:#888"></i></a>' : '') +
+          (socials.instagram ? '<a href="' + socials.instagram + '" target="_blank"><i class="ti ti-brand-instagram" style="font-size:20px;color:#E4405F"></i></a>' : '') +
+          (socials.github ? '<a href="' + socials.github + '" target="_blank"><i class="ti ti-brand-github" style="font-size:20px;color:#888"></i></a>' : '') +
+          (socials.youtube ? '<a href="' + socials.youtube + '" target="_blank"><i class="ti ti-brand-youtube" style="font-size:20px;color:#FF0000"></i></a>' : '') +
+          (socials.tiktok ? '<a href="' + socials.tiktok + '" target="_blank"><i class="ti ti-brand-tiktok" style="font-size:20px;color:#000"></i></a>' : '') +
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function uploadAvatar(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  
+  var storageRef = storage.ref('avatars/' + USER_UID + '/' + file.name);
+  var uploadTask = storageRef.put(file);
+  
+  uploadTask.on('state_changed', null, function(error) {
+    showToast('Upload failed: ' + error.message);
+  }, function() {
+    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+      db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
+        .then(function() {
+          userProfile.avatarUrl = downloadURL;
+          showToast('Avatar uploaded! ✅');
+          renderTab('biopage');
+        });
+    });
+  });
+}
+
+function updateColor(color) {
+  document.getElementById('colorValue').value = color;
+  document.querySelector('.color-swatch').style.background = color;
+}
+
+function saveProfile() {
+  var displayName = document.getElementById('displayNameInput').value.trim();
+  var bio = document.getElementById('bioInput').value.trim();
+  var accentColor = document.getElementById('colorValue').value.trim();
+  
+  var updates = {};
+  if (displayName) updates.displayName = displayName;
+  if (bio) updates.bio = bio;
+  if (accentColor) updates.accentColor = accentColor;
+  
+  db.collection('users').doc(USER_UID).update(updates)
+    .then(function() {
+      Object.assign(userProfile, updates);
+      showToast('Profile saved! ✅');
+      renderTab('biopage');
+    })
+    .catch(function(error) {
+      showToast('Error: ' + error.message);
+    });
+}
+
+function addBioLink() {
+  var links = userProfile.bioLinks || [];
+  links.push({ title: '', url: '' });
+  userProfile.bioLinks = links;
+  renderTab('biopage');
+}
+
+function removeBioLink(index) {
+  var links = userProfile.bioLinks || [];
+  links.splice(index, 1);
+  userProfile.bioLinks = links;
+  db.collection('users').doc(USER_UID).update({ bioLinks: links });
+  renderTab('biopage');
+}
+
+function saveSocials() {
+  var socials = {
+    discord: document.getElementById('socialDiscord').value.trim(),
+    x: document.getElementById('socialX').value.trim(),
+    instagram: document.getElementById('socialInstagram').value.trim(),
+    github: document.getElementById('socialGithub').value.trim(),
+    youtube: document.getElementById('socialYoutube').value.trim(),
+    tiktok: document.getElementById('socialTiktok').value.trim()
+  };
+  
+  db.collection('users').doc(USER_UID).update({ socials: socials })
+    .then(function() {
+      userProfile.socials = socials;
+      showToast('Socials saved! ✅');
+      renderTab('biopage');
+    })
+    .catch(function(error) {
+      showToast('Error: ' + error.message);
+    });
+}
+
+function renderUsernames(){
+  var userList = USERS_LIST.length > 0 ? USERS_LIST : [USERNAME];
+  var handleRows = userList.map(function(u, i){
+    var isLogin = (u === USERNAME);
+    return '<div class="handle-row">'+
+      '<div><span class="handle-name">' + D + '/' + u + '</span>' + (isLogin ? '<span class="badge">LOGIN</span><span class="badge">BIOPAGE</span>' : '<span class="badge">ALIAS</span>') + '</div>'+
+      '<div class="handle-actions">' +
+        (isLogin ? '' : '<button class="btn btn-outline btn-sm" onclick="releaseHandle(\'' + u + '\')">Release</button>') +
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var count = userList.length;
+  var maxHandles = 15;
+
+  return '<div class="card">'+
+    '<div class="card-title">Claim a Username</div>'+
+    '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage you can point at your profile. You own ' + count + ' of ' + maxHandles + '.</div>'+
+    '<div style="display:flex;gap:8px;margin-top:4px">'+
+      '<div style="display:flex;align-items:center;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden;flex:1">'+
+        '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
+        '<input type="text" id="claim-input" placeholder="username" style="border:none;border-radius:0;background:transparent;flex:1">'+
+      '</div>'+
+      '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
+    '</div>'+
+    '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max 15 handles</div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
+    '<div class="card-sub">Every handle you own. Your login handle can\'t be released.</div>'+
+    handleRows +
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Primary Handle</div>'+
+    '<div class="card-sub">Pick which of your handles is your biopage.</div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'+
+      '<select style="flex:1" id="primaryHandleSelect">' + userList.map(function(u){ return '<option' + (u === USERNAME ? ' selected' : '') + '>' + D + '/' + u + (u === USERNAME ? ' (login)' : '') + '</option>'; }).join('') + '</select>'+
+      '<button class="btn btn-primary" onclick="setPrimaryHandle()">Set primary</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function claimUsername(){
+  var v=document.getElementById('claim-input');
+  if(!v) return;
+  var username = v.value.trim().toLowerCase();
+  
+  if (USERS_LIST.length >= 15) {
+    showToast('You already have 15 handles (maximum).');
+    return;
+  }
+  
+  if (!username || !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
+    showToast('Username must be 3-24 characters (letters, numbers, underscores).');
+    return;
+  }
+  
+  db.collection('usernames').doc(username).get().then(function(snapshot) {
+    if (snapshot.exists) {
+      showToast('Username "' + username + '" is already taken.');
+      return;
+    }
+    
+    USERS_LIST.push(username);
+    db.collection('users').doc(USER_UID).update({ handles: USERS_LIST });
+    db.collection('usernames').doc(username).set({
+      uid: USER_UID,
+      claimedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    showToast('Claimed @' + username + '! ✅');
+    renderTab('usernames');
+  }).catch(function() {
+    showToast('Error claiming username.');
+  });
+}
+
+function releaseHandle(username) {
+  if (username === USERNAME) {
+    showToast('Cannot release your login handle.');
+    return;
+  }
+  
+  var index = USERS_LIST.indexOf(username);
+  if (index > -1) {
+    USERS_LIST.splice(index, 1);
+    db.collection('users').doc(USER_UID).update({ handles: USERS_LIST });
+    db.collection('usernames').doc(username).delete();
+    showToast('Released @' + username);
+    renderTab('usernames');
+  }
+}
+
+function setPrimaryHandle() {
+  var select = document.getElementById('primaryHandleSelect');
+  if (!select) return;
+  var value = select.value;
+  var username = value.split('/')[1];
+  db.collection('users').doc(USER_UID).update({ primaryHandle: username })
+    .then(function() {
+      showToast('Primary handle set to @' + username + ' ✅');
+    });
+}
+
+function renderLookup(){
+  return '<div class="card">'+
+    '<div class="card-title">Look up a user</div>'+
+    '<div class="card-sub">Search by @username or #id. Returns their public bio page info.</div>'+
+    '<div style="display:flex;gap:8px;margin-top:4px">'+
+      '<input type="text" id="lookup-input" placeholder="@username or #id" style="flex:1">'+
+      '<button class="btn btn-primary" onclick="doLookup()">Look up</button>'+
+    '</div>'+
+    '<div class="lookup-result" id="lookup-result"></div>'+
+  '</div>';
+}
+
+function doLookup(){
+  var v=document.getElementById('lookup-input');
+  var r=document.getElementById('lookup-result');
+  if(!v||!v.value){showToast('Enter a username or #id');return;}
+  var query = v.value.trim();
+  
+  if (query.startsWith('#')) {
+    var id = parseInt(query.replace('#', ''));
+    db.collection('users').where('userNumber', '==', id).get()
+      .then(function(snapshot) {
+        if (snapshot.empty) {
+          r.classList.add('show');
+          r.innerHTML = '<div style="color:var(--ms-muted);text-align:center;padding:12px">User not found.</div>';
+          return;
+        }
+        var data;
+        snapshot.forEach(function(doc) {
+          data = doc.data();
+        });
+        r.classList.add('show');
+        r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
+          '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (data.displayName || data.username)[0].toUpperCase() + '</div>'+
+          '<div><div style="font-weight:600">@' + data.username + '</div>'+
+          '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + data.username + ' · #' + data.userNumber + '</div>'+
+          '<div style="font-size:12px;color:var(--ms-muted)">' + (data.bio || 'No bio yet.') + '</div></div>'+
+        '</div>';
+      });
+  } else {
+    var username = query.replace('@', '');
+    db.collection('usernames').doc(username).get()
+      .then(function(snapshot) {
+        if (!snapshot.exists) {
+          r.classList.add('show');
+          r.innerHTML = '<div style="color:var(--ms-muted);text-align:center;padding:12px">User not found.</div>';
+          return;
+        }
+        var uid = snapshot.data().uid;
+        db.collection('users').doc(uid).get()
+          .then(function(doc) {
+            if (!doc.exists) {
+              r.innerHTML = '<div style="color:var(--ms-muted);text-align:center;padding:12px">User not found.</div>';
+              return;
+            }
+            var data = doc.data();
+            r.classList.add('show');
+            r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
+              '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (data.displayName || data.username)[0].toUpperCase() + '</div>'+
+              '<div><div style="font-weight:600">@' + data.username + '</div>'+
+              '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + data.username + ' · #' + data.userNumber + '</div>'+
+              '<div style="font-size:12px;color:var(--ms-muted)">' + (data.bio || 'No bio yet.') + '</div></div>'+
+            '</div>';
+          });
+      });
+  }
+}
+
+function renderSessions(){
+  return '<div class="card">'+
+    '<div class="card-title">Active sessions</div>'+
+    '<div class="card-sub">Everywhere you\'re signed in.</div>'+
+    '<div class="session-card" style="margin-top:12px">'+
+      '<div>'+
+        '<div class="session-device">Firebase Session<span class="session-current">this device</span></div>'+
+        '<div class="session-meta">Signed in as @' + USERNAME + '<br>' + USER_EMAIL + '<br>Signed in ' + new Date().toLocaleString() + '</div>'+
+      '</div>'+
+      '<button class="btn btn-outline btn-sm" onclick="logout()">Log out</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function attachHandlers(){
+  document.querySelectorAll('.seg-opt').forEach(function(o){
+    o.onclick=function(){
+      o.parentElement.querySelectorAll('.seg-opt').forEach(function(s){s.classList.remove('active')});
+      o.classList.add('active');
+    };
+  });
+  document.querySelectorAll('.toggle').forEach(function(t){
+    t.onclick=function(){t.classList.toggle('on')};
+  });
+}
+
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function(e) {
+    e.preventDefault();
+    var tab = this.dataset.tab;
+    var url = '/settings.html?tab=' + tab;
+    window.history.pushState({ tab: tab }, '', url);
+    updateActiveTab(tab);
+    renderTab(tab);
+    document.title = 'mailserver.life — Settings — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
+  });
+});
+
+window.addEventListener('popstate', function() {
+  var tab = getTabFromURL();
+  updateActiveTab(tab);
+  renderTab(tab);
+});
+</script>
+</body>
+</html>
