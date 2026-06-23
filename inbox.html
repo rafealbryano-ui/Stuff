@@ -82,8 +82,8 @@
 <header class="header">
   <a href="/" class="logo">mailserver<span>.life</span></a>
   <nav class="header-nav">
-    <a href="/inbox.html" class="btn btn-outline">Inbox</a>
-    <a href="/settings.html" class="btn btn-outline">Settings</a>
+    <a href="/inbox" class="btn btn-outline">Inbox</a>
+    <a href="/settings" class="btn btn-outline">Settings</a>
     <button class="btn btn-outline" onclick="logout()">Logout</button>
   </nav>
 </header>
@@ -91,13 +91,13 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-section">Mail</div>
-    <a href="/inbox.html" class="sidebar-item active"><i class="ti ti-inbox" aria-hidden="true"></i> Inbox</a>
-    <a href="/sent.html" class="sidebar-item"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
-    <a href="/tempmail.html" class="sidebar-item"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
-    <a href="/trash.html" class="sidebar-item"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
+    <a href="/inbox" class="sidebar-item active"><i class="ti ti-inbox" aria-hidden="true"></i> Inbox</a>
+    <a href="/sent" class="sidebar-item"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
+    <a href="/tempmail" class="sidebar-item"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
+    <a href="/trash" class="sidebar-item"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
     <div class="sidebar-section">Account</div>
-    <a href="/settings.html" class="sidebar-item"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
-    <a href="/files.html" class="sidebar-item"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
+    <a href="/settings" class="sidebar-item"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
+    <a href="/files" class="sidebar-item"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
   </aside>
 
   <main class="main">
@@ -151,7 +151,7 @@ var msgs = [];
 
 auth.onAuthStateChanged(function(user) {
   if (!user) {
-    window.location.href = '/login.html';
+    window.location.href = '/login';
     return;
   }
   USER_UID = user.uid;
@@ -200,6 +200,7 @@ function loadEmails() {
     })
     .catch(function(error) {
       console.error('Error loading emails:', error);
+      showToast('Error loading emails: ' + error.message);
     });
 }
 
