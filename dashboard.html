@@ -227,16 +227,6 @@ function getTabFromURL() {
   return 'account';
 }
 
-function updateURL(page, tab) {
-  if (page === 'settings' && tab) {
-    var url = '/app/settings/' + tab;
-    window.history.replaceState({ page: page, tab: tab }, '', url);
-  } else {
-    var url = '/app/' + page;
-    window.history.replaceState({ page: page }, '', url);
-  }
-}
-
 function navigateTo(page) {
   event.preventDefault();
   var tab = 'account';
@@ -245,7 +235,11 @@ function navigateTo(page) {
   }
   currentPage = page;
   currentTab = tab;
-  updateURL(page, tab);
+  var url = '/app/' + page;
+  if (page === 'settings' && tab) {
+    url = '/app/settings/' + tab;
+  }
+  window.history.pushState({ page: page, tab: tab }, '', url);
   switchMain(page, tab);
   updateSidebar(page);
   var title = page.charAt(0).toUpperCase() + page.slice(1);
@@ -469,13 +463,11 @@ function sendCompose() {
 
 function switchMain(page, tab) {
   renderPage(page, tab);
-  if (page !== 'settings') {
-    updateURL(page, null);
-    document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
-  } else {
-    updateURL(page, tab || 'account');
-    document.title = 'mailserver.life — Settings — ' + (tab || 'account').charAt(0).toUpperCase() + (tab || 'account').slice(1);
+  var title = page.charAt(0).toUpperCase() + page.slice(1);
+  if (page === 'settings' && tab) {
+    title += ' — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
   }
+  document.title = 'mailserver.life — ' + title;
 }
 
 function renderPage(page, tab) {
