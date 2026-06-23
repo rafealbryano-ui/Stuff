@@ -1,119 +1,128 @@
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --ms-bg:#0a0a0a;
-  --ms-surface:#111111;
-  --ms-card:#181818;
-  --ms-border:#2a2a2a;
-  --ms-border-hover:#3a3a3a;
-  --ms-text:#e8e8e8;
-  --ms-muted:#888;
-  --ms-accent:#4f7cff;
-  --ms-accent-dim:#1a2a6e;
-  --ms-danger:#e24b4a;
-  --ms-success:#1d9e75;
-  --ms-mono:'JetBrains Mono',monospace;
-  --ms-sans:'Inter',sans-serif;
-}
-body{background:var(--ms-bg);color:var(--ms-text);font-family:var(--ms-sans);font-size:14px;min-height:100vh}
-a{color:var(--ms-accent);text-decoration:none}
-a:hover{text-decoration:underline}
-.header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;border-bottom:1px solid var(--ms-border);background:var(--ms-bg);position:sticky;top:0;z-index:100}
-.logo{font-family:var(--ms-mono);font-size:15px;font-weight:700;color:var(--ms-text)}
-.logo span{color:var(--ms-accent)}
-.header-nav{display:flex;gap:8px;align-items:center}
-.btn{font-family:var(--ms-sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s}
-.btn-outline{background:transparent;border:1px solid var(--ms-border);color:var(--ms-text)}
-.btn-outline:hover{border-color:var(--ms-border-hover);background:#1f1f1f}
-.btn-primary{background:var(--ms-accent);border:1px solid var(--ms-accent);color:#fff}
-.btn-primary:hover{background:#3d6aee}
-.btn-danger{background:transparent;border:1px solid var(--ms-danger);color:var(--ms-danger)}
-.btn-danger:hover{background:rgba(226,75,74,.1)}
-.btn-success{background:var(--ms-success);border:1px solid var(--ms-success);color:#fff}
-.btn-success:hover{background:#158a62}
-.layout{display:flex;min-height:calc(100vh - 48px)}
-.sidebar{width:200px;min-width:200px;border-right:1px solid var(--ms-border);padding:16px 0;background:var(--ms-bg)}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--ms-muted);cursor:pointer;transition:color .15s,background .15s}
-.sidebar-item:hover{color:var(--ms-text);background:#161616}
-.sidebar-item.active{color:var(--ms-text);background:#1a1a2e;border-right:2px solid var(--ms-accent)}
-.sidebar-item i{font-size:16px}
-.sidebar-section{font-size:11px;color:var(--ms-muted);padding:16px 20px 4px;letter-spacing:.08em;text-transform:uppercase}
-.main{flex:1;overflow-y:auto}
-.page-header{padding:28px 32px 0}
-.page-title{font-size:22px;font-weight:600;margin-bottom:4px}
-.page-sub{font-size:13px;color:var(--ms-muted)}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--ms-border);margin-top:20px}
-.tab{padding:10px 18px;font-size:13px;color:var(--ms-muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s}
-.tab:hover{color:var(--ms-text)}
-.tab.active{color:var(--ms-accent);border-bottom-color:var(--ms-accent)}
-.content{padding:24px 32px}
-.card{background:var(--ms-card);border:1px solid var(--ms-border);border-radius:10px;padding:20px;margin-bottom:16px}
-.card-title{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--ms-text)}
-.card-sub{font-size:13px;color:var(--ms-muted);margin-bottom:16px;line-height:1.5}
-.card-danger{border-color:rgba(226,75,74,.4)}
-label{display:block;font-size:12px;color:var(--ms-muted);margin-bottom:6px;margin-top:14px}
-label:first-child{margin-top:0}
-input[type=text],input[type=password],input[type=email],select,textarea{width:100%;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:8px 12px;color:var(--ms-text);font-family:var(--ms-sans);font-size:13px;outline:none;transition:border-color .15s}
-input:focus,select:focus,textarea:focus{border-color:var(--ms-accent)}
-.input-row{position:relative}
-.input-show{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ms-muted);cursor:pointer}
-.input-show:hover{color:var(--ms-text)}
-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-textarea{resize:vertical;min-height:80px}
-.toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer}
-.toggle{width:36px;height:20px;border-radius:10px;background:var(--ms-border);position:relative;transition:background .2s;flex-shrink:0}
-.toggle.on{background:var(--ms-accent)}
-.toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
-.toggle.on::after{left:18px}
-.toggle-label{font-size:13px;color:var(--ms-text)}
-.handle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ms-border)}
-.handle-row:last-child{border-bottom:none}
-.handle-name{font-family:var(--ms-mono);font-size:13px;color:var(--ms-text)}
-.badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#1a2a6e;color:var(--ms-accent);font-weight:500;margin-left:6px}
-.handle-actions{display:flex;gap:6px}
-.btn-sm{font-size:12px;padding:4px 10px;border-radius:5px}
-.inbox-bar{display:flex;align-items:center;gap:12px;padding:16px 32px;border-bottom:1px solid var(--ms-border)}
-.inbox-search{flex:1;position:relative}
-.inbox-search input{padding-left:36px}
-.inbox-search i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ms-muted);font-size:16px}
-.msg-item{display:flex;align-items:center;gap:16px;padding:12px 32px;border-bottom:1px solid var(--ms-border);cursor:pointer;transition:background .1s}
-.msg-item:hover{background:#141414}
-.msg-dot{width:8px;height:8px;border-radius:50%;background:var(--ms-accent);flex-shrink:0}
-.msg-dot.read{background:transparent}
-.msg-from{width:160px;flex-shrink:0;font-size:13px;color:var(--ms-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.msg-subject{flex:1;font-size:13px;color:var(--ms-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.msg-time{font-size:12px;color:var(--ms-muted);flex-shrink:0}
-.msg-item.unread .msg-from{font-weight:600}
-.msg-item.unread .msg-subject{color:var(--ms-text);font-weight:500}
-.empty-inbox{text-align:center;padding:60px 32px;color:var(--ms-muted)}
-.empty-inbox i{font-size:40px;margin-bottom:12px;display:block;color:#333}
-.bio-preview-frame{background:linear-gradient(135deg,#0d0d1a 0%,#0a0a0a 100%);border-radius:10px;padding:40px 20px;text-align:center;border:1px solid var(--ms-border)}
-.bio-avatar{width:64px;height:64px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--ms-accent);margin:0 auto 12px}
-.bio-name{font-size:18px;font-weight:600;color:var(--ms-text);margin-bottom:4px}
-.bio-handle{font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono)}
-.bio-links{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:280px;margin-left:auto;margin-right:auto}
-.bio-link-btn{background:#1f1f1f;border:1px solid var(--ms-border);border-radius:8px;padding:10px;font-size:13px;color:var(--ms-text);cursor:pointer;transition:background .15s}
-.bio-link-btn:hover{background:#252525}
-.slider-row{display:flex;align-items:center;gap:12px}
-.slider-row input[type=range]{flex:1;accent-color:var(--ms-accent)}
-.slider-val{font-family:var(--ms-mono);font-size:13px;color:var(--ms-muted);min-width:40px;text-align:right}
-.color-swatch{width:28px;height:28px;border-radius:5px;border:1px solid var(--ms-border);cursor:pointer;flex-shrink:0}
-.color-row{display:flex;align-items:center;gap:10px;margin-top:10px}
-.session-card{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
-.session-device{font-weight:600;color:var(--ms-text);margin-bottom:4px;font-size:13px}
-.session-meta{color:var(--ms-muted);font-size:12px;line-height:1.6}
-.session-current{font-size:11px;color:var(--ms-success);background:#0a2e1e;padding:2px 7px;border-radius:4px;margin-left:8px}
-.toast{position:fixed;bottom:20px;right:20px;background:#1f1f2e;border:1px solid var(--ms-accent);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--ms-text);z-index:999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none}
-.toast.show{opacity:1;transform:translateY(0)}
-.seg{display:flex;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden}
-.seg-opt{flex:1;text-align:center;padding:7px;font-size:12px;color:var(--ms-muted);cursor:pointer;transition:background .15s,color .15s}
-.seg-opt.active{background:var(--ms-card);color:var(--ms-text);font-weight:500}
-.lookup-result{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:16px;margin-top:12px;display:none}
-.lookup-result.show{display:block}
-</style>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --ms-bg:#0a0a0a;
+      --ms-surface:#111111;
+      --ms-card:#181818;
+      --ms-border:#2a2a2a;
+      --ms-border-hover:#3a3a3a;
+      --ms-text:#e8e8e8;
+      --ms-muted:#888;
+      --ms-accent:#4f7cff;
+      --ms-accent-dim:#1a2a6e;
+      --ms-danger:#e24b4a;
+      --ms-success:#1d9e75;
+      --ms-mono:'JetBrains Mono',monospace;
+      --ms-sans:'Inter',sans-serif;
+    }
+    body{background:var(--ms-bg);color:var(--ms-text);font-family:var(--ms-sans);font-size:14px;min-height:100vh}
+    a{color:var(--ms-accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:48px;border-bottom:1px solid var(--ms-border);background:var(--ms-bg);position:sticky;top:0;z-index:100}
+    .logo{font-family:var(--ms-mono);font-size:15px;font-weight:700;color:var(--ms-text)}
+    .logo span{color:var(--ms-accent)}
+    .header-nav{display:flex;gap:8px}
+    .btn{font-family:var(--ms-sans);font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s}
+    .btn-outline{background:transparent;border:1px solid var(--ms-border);color:var(--ms-text)}
+    .btn-outline:hover{border-color:var(--ms-border-hover);background:#1f1f1f}
+    .btn-primary{background:var(--ms-accent);border:1px solid var(--ms-accent);color:#fff}
+    .btn-primary:hover{background:#3d6aee}
+    .btn-danger{background:transparent;border:1px solid var(--ms-danger);color:var(--ms-danger)}
+    .btn-danger:hover{background:rgba(226,75,74,.1)}
+    .layout{display:flex;min-height:calc(100vh - 48px)}
+    .sidebar{width:200px;min-width:200px;border-right:1px solid var(--ms-border);padding:16px 0;background:var(--ms-bg)}
+    .sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;color:var(--ms-muted);cursor:pointer;transition:color .15s,background .15s}
+    .sidebar-item:hover{color:var(--ms-text);background:#161616}
+    .sidebar-item.active{color:var(--ms-text);background:#1a1a2e;border-right:2px solid var(--ms-accent)}
+    .sidebar-item i{font-size:16px}
+    .sidebar-section{font-size:11px;color:var(--ms-muted);padding:16px 20px 4px;letter-spacing:.08em;text-transform:uppercase}
+    .main{flex:1;overflow-y:auto}
+    .page-header{padding:28px 32px 0}
+    .page-title{font-size:22px;font-weight:600;margin-bottom:4px}
+    .page-sub{font-size:13px;color:var(--ms-muted)}
+    .tabs{display:flex;gap:0;border-bottom:1px solid var(--ms-border);margin-top:20px}
+    .tab{padding:10px 18px;font-size:13px;color:var(--ms-muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s}
+    .tab:hover{color:var(--ms-text)}
+    .tab.active{color:var(--ms-accent);border-bottom-color:var(--ms-accent)}
+    .content{padding:24px 32px}
+    .card{background:var(--ms-card);border:1px solid var(--ms-border);border-radius:10px;padding:20px;margin-bottom:16px}
+    .card-title{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--ms-text)}
+    .card-sub{font-size:13px;color:var(--ms-muted);margin-bottom:16px;line-height:1.5}
+    .card-danger{border-color:rgba(226,75,74,.4)}
+    label{display:block;font-size:12px;color:var(--ms-muted);margin-bottom:6px;margin-top:14px}
+    label:first-child{margin-top:0}
+    input[type=text],input[type=password],input[type=email],select,textarea{width:100%;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:8px 12px;color:var(--ms-text);font-family:var(--ms-sans);font-size:13px;outline:none;transition:border-color .15s}
+    input:focus,select:focus,textarea:focus{border-color:var(--ms-accent)}
+    .input-row{position:relative}
+    .input-show{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ms-muted);cursor:pointer}
+    .input-show:hover{color:var(--ms-text)}
+    select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+    textarea{resize:vertical;min-height:80px}
+    .toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+    .toggle{width:36px;height:20px;border-radius:10px;background:var(--ms-border);position:relative;transition:background .2s;flex-shrink:0}
+    .toggle.on{background:var(--ms-accent)}
+    .toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
+    .toggle.on::after{left:18px}
+    .toggle-label{font-size:13px;color:var(--ms-text)}
+    .handle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ms-border)}
+    .handle-row:last-child{border-bottom:none}
+    .handle-name{font-family:var(--ms-mono);font-size:13px;color:var(--ms-text)}
+    .badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#1a2a6e;color:var(--ms-accent);font-weight:500;margin-left:6px}
+    .handle-actions{display:flex;gap:6px}
+    .btn-sm{font-size:12px;padding:4px 10px;border-radius:5px}
+    .inbox-bar{display:flex;align-items:center;gap:12px;padding:16px 32px;border-bottom:1px solid var(--ms-border)}
+    .inbox-search{flex:1;position:relative}
+    .inbox-search input{padding-left:36px}
+    .inbox-search i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ms-muted);font-size:16px}
+    .msg-item{display:flex;align-items:center;gap:16px;padding:12px 32px;border-bottom:1px solid var(--ms-border);cursor:pointer;transition:background .1s}
+    .msg-item:hover{background:#141414}
+    .msg-dot{width:8px;height:8px;border-radius:50%;background:var(--ms-accent);flex-shrink:0}
+    .msg-dot.read{background:transparent}
+    .msg-from{width:160px;flex-shrink:0;font-size:13px;color:var(--ms-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .msg-subject{flex:1;font-size:13px;color:var(--ms-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .msg-time{font-size:12px;color:var(--ms-muted);flex-shrink:0}
+    .msg-item.unread .msg-from{font-weight:600}
+    .msg-item.unread .msg-subject{color:var(--ms-text);font-weight:500}
+    .empty-inbox{text-align:center;padding:60px 32px;color:var(--ms-muted)}
+    .empty-inbox i{font-size:40px;margin-bottom:12px;display:block;color:#333}
+    .bio-preview-frame{background:linear-gradient(135deg,#0d0d1a 0%,#0a0a0a 100%);border-radius:10px;padding:40px 20px;text-align:center;border:1px solid var(--ms-border)}
+    .bio-avatar{width:64px;height:64px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:var(--ms-accent);margin:0 auto 12px}
+    .bio-name{font-size:18px;font-weight:600;color:var(--ms-text);margin-bottom:4px}
+    .bio-handle{font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono)}
+    .bio-links{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:280px;margin-left:auto;margin-right:auto}
+    .bio-link-btn{background:#1f1f1f;border:1px solid var(--ms-border);border-radius:8px;padding:10px;font-size:13px;color:var(--ms-text);cursor:pointer;transition:background .15s}
+    .bio-link-btn:hover{background:#252525}
+    .slider-row{display:flex;align-items:center;gap:12px}
+    .slider-row input[type=range]{flex:1;accent-color:var(--ms-accent)}
+    .slider-val{font-family:var(--ms-mono);font-size:13px;color:var(--ms-muted);min-width:40px;text-align:right}
+    .color-swatch{width:28px;height:28px;border-radius:5px;border:1px solid var(--ms-border);cursor:pointer;flex-shrink:0}
+    .color-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+    .session-card{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+    .session-device{font-weight:600;color:var(--ms-text);margin-bottom:4px;font-size:13px}
+    .session-meta{color:var(--ms-muted);font-size:12px;line-height:1.6}
+    .session-current{font-size:11px;color:var(--ms-success);background:#0a2e1e;padding:2px 7px;border-radius:4px;margin-left:8px}
+    .toast{position:fixed;bottom:20px;right:20px;background:#1f1f2e;border:1px solid var(--ms-accent);border-radius:8px;padding:12px 18px;font-size:13px;color:var(--ms-text);z-index:999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .seg{display:flex;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden}
+    .seg-opt{flex:1;text-align:center;padding:7px;font-size:12px;color:var(--ms-muted);cursor:pointer;transition:background .15s,color .15s}
+    .seg-opt.active{background:var(--ms-card);color:var(--ms-text);font-weight:500}
+    .lookup-result{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:16px;margin-top:12px;display:none}
+    .lookup-result.show{display:block}
+    .user-email{font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:2px}
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
 
 <div style="min-height:100vh;background:#0a0a0a">
 
@@ -128,16 +137,16 @@ textarea{resize:vertical;min-height:80px}
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-section">Mail</div>
-    <div class="sidebar-item active" id="sidebar-inbox" onclick="switchMain('inbox');setSidebar(this)">
+    <div class="sidebar-item active" onclick="switchMain('inbox');setSidebar(this)">
       <i class="ti ti-inbox" aria-hidden="true"></i> Inbox
       <span id="unread-badge" style="margin-left:auto;background:var(--ms-accent);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px">0</span>
     </div>
-    <div class="sidebar-item" id="sidebar-sent" onclick="switchMain('sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</div>
-    <div class="sidebar-item" id="sidebar-tempmail" onclick="switchMain('tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</div>
-    <div class="sidebar-item" id="sidebar-trash" onclick="switchMain('trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</div>
+    <div class="sidebar-item" onclick="switchMain('sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</div>
+    <div class="sidebar-item" onclick="switchMain('tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</div>
+    <div class="sidebar-item" onclick="switchMain('trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</div>
     <div class="sidebar-section">Account</div>
-    <div class="sidebar-item" id="sidebar-settings" onclick="switchMain('settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</div>
-    <div class="sidebar-item" id="sidebar-files" onclick="switchMain('files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</div>
+    <div class="sidebar-item" onclick="switchMain('settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</div>
+    <div class="sidebar-item" onclick="switchMain('files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</div>
   </aside>
 
   <main class="main" id="main-area"></main>
@@ -147,30 +156,51 @@ textarea{resize:vertical;min-height:80px}
 <div class="toast" id="toast-el"></div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+  authDomain: "mailserver-life.firebaseapp.com",
+  projectId: "mailserver-life",
+  storageBucket: "mailserver-life.firebasestorage.app",
+  messagingSenderId: "195734676668",
+  appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+  measurementId: "G-V216FC1QMD"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
 var D = 'mailserver.life';
 var USERNAME = '';
 var USER_ID = 0;
+var USER_EMAIL = '';
+var USER_UID = '';
 var USERS_LIST = [];
-var DISPLAY_NAME = '';
-var BIO_TEXT = '';
-var CURRENT_TAB = 'inbox';
-var SETTINGS_TAB = 'account';
-var USER_DATA = {};
 
-function getSession() {
-  try {
-    var raw = localStorage.getItem('mailserver_session');
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch(e) { return null; }
-}
+auth.onAuthStateChanged(function(user) {
+  if (!user) {
+    window.location.href = '/login';
+    return;
+  }
+  USER_UID = user.uid;
+  USER_EMAIL = user.email;
+  USERNAME = user.displayName || user.email.split('@')[0];
+  document.getElementById('unread-badge').textContent = 0;
+  loadUserData();
+  switchMain('inbox');
+});
 
-function setSession(username) {
-  localStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-}
-
-function clearSession() {
-  localStorage.removeItem('mailserver_session');
+function loadUserData() {
+  db.collection('users').doc(USER_UID).get().then(function(doc) {
+    if (doc.exists) {
+      var data = doc.data();
+      USERNAME = data.username || USERNAME;
+      USERS_LIST = data.handles || [USERNAME];
+      USER_ID = USERS_LIST.indexOf(USERNAME) + 1;
+    }
+  }).catch(function(err) {
+    console.error('Error loading user data:', err);
+  });
 }
 
 function getUsers() {
@@ -182,15 +212,6 @@ function getUsers() {
   } catch(e) { return {}; }
 }
 
-function saveUsers(users) {
-  try {
-    var raw = localStorage.getItem('mailserver_data');
-    var data = raw ? JSON.parse(raw) : { users: {}, version: 'XL!KD_USERAKFLAP' };
-    data.users = users;
-    localStorage.setItem('mailserver_data', JSON.stringify(data));
-  } catch(e) {}
-}
-
 function getUserIndex(username) {
   var users = getUsers();
   var keys = Object.keys(users);
@@ -200,42 +221,8 @@ function getUserIndex(username) {
   return 0;
 }
 
-function loadUserData() {
-  var users = getUsers();
-  if (users[USERNAME]) {
-    USER_DATA = users[USERNAME] || {};
-    DISPLAY_NAME = USER_DATA.displayName || USERNAME;
-    BIO_TEXT = USER_DATA.bio || '';
-  }
-}
-
-function saveUserData() {
-  var users = getUsers();
-  if (users[USERNAME]) {
-    users[USERNAME].displayName = DISPLAY_NAME;
-    users[USERNAME].bio = BIO_TEXT;
-    saveUsers(users);
-  }
-}
-
-function initUser() {
-  var session = getSession();
-  if (!session || !session.username) {
-    window.location.href = '/login';
-    return;
-  }
-  USERNAME = session.username;
-  USER_ID = getUserIndex(USERNAME);
-  USERS_LIST = Object.keys(getUsers());
-  loadUserData();
-  var savedTab = localStorage.getItem('mailserver_last_tab');
-  if (savedTab) {
-    CURRENT_TAB = savedTab;
-  }
-  var savedSettingsTab = localStorage.getItem('mailserver_last_settings_tab');
-  if (savedSettingsTab) {
-    SETTINGS_TAB = savedSettingsTab;
-  }
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem('mailserver_session')) || null; } catch(e) { return null; }
 }
 
 function showToast(msg){
@@ -250,26 +237,24 @@ function setSidebar(el){
 }
 
 function logout() {
-  clearSession();
-  localStorage.removeItem('mailserver_last_tab');
-  localStorage.removeItem('mailserver_last_settings_tab');
-  window.location.href = '/';
+  auth.signOut().then(function() {
+    sessionStorage.removeItem('mailserver_session');
+    sessionStorage.removeItem('mailserver_claim');
+    window.location.href = '/';
+  });
 }
 
 var msgs = [];
 
 function switchMain(s){
-  CURRENT_TAB = s;
-  localStorage.setItem('mailserver_last_tab', s);
   var el=document.getElementById('main-area');
   if(s==='inbox') el.innerHTML=renderInbox();
   else if(s==='settings') el.innerHTML=renderSettings();
   else if(s==='sent') el.innerHTML=renderEmpty('ti-send','Sent','No sent messages yet.');
   else if(s==='tempmail') el.innerHTML=renderTempmail();
   else if(s==='trash') el.innerHTML=renderEmpty('ti-trash','Trash','Trash is empty.');
-  else if(s==='files') el.innerHTML=renderFiles();
+  else if(s==='files') el.innerHTML=renderEmpty('ti-file','Files','No files uploaded.');
   attachHandlers();
-  restoreSettingsTab();
 }
 
 function renderInbox(){
@@ -319,59 +304,23 @@ function renderTempmail(){
   '</div>';
 }
 
-function renderFiles(){
-  return '<div style="padding:28px 32px">'+
-    '<div class="page-title">Files</div>'+
-    '<p class="page-sub" style="margin-top:4px;margin-bottom:20px">Your uploaded files. Max 10MB per file.</p>'+
-    '<div class="card">'+
-      '<div class="card-title">Upload a file</div>'+
-      '<div class="card-sub">Drag and drop or click to upload.</div>'+
-      '<div style="border:2px dashed var(--ms-border);border-radius:8px;padding:40px;text-align:center;color:var(--ms-muted);cursor:pointer" onclick="showToast(\'File picker coming soon\')">'+
-        '<i class="ti ti-cloud-upload" style="font-size:32px;display:block;margin-bottom:8px"></i>'+
-        'Click to upload or drag & drop'+
-      '</div>'+
-      '<button class="btn btn-primary" style="margin-top:12px" onclick="showToast(\'Upload dialog coming soon\')">Choose file</button>'+
-    '</div>'+
-    '<div class="empty-inbox"><i class="ti ti-file"></i><div style="font-size:15px;font-weight:600;color:var(--ms-text);margin-bottom:6px">No files uploaded</div><div>Upload your first file above.</div></div>'+
-  '</div>';
-}
-
 function renderSettings(){
   return '<div class="page-header">'+
     '<div class="page-title">Settings</div>'+
+    '<div class="user-email">' + USER_EMAIL + ' · @' + USERNAME + ' · #' + USER_ID + '</div>'+
     '<div class="tabs">'+
-      '<div class="tab '+(SETTINGS_TAB==='account'?'active':'')+'" data-tab="account" onclick="switchSettingsTab(\'account\',this)">Account</div>'+
-      '<div class="tab '+(SETTINGS_TAB==='email'?'active':'')+'" data-tab="email" onclick="switchSettingsTab(\'email\',this)">Email</div>'+
-      '<div class="tab '+(SETTINGS_TAB==='biopage'?'active':'')+'" data-tab="biopage" onclick="switchSettingsTab(\'biopage\',this)">Bio Page</div>'+
-      '<div class="tab '+(SETTINGS_TAB==='usernames'?'active':'')+'" data-tab="usernames" onclick="switchSettingsTab(\'usernames\',this)">Usernames</div>'+
-      '<div class="tab '+(SETTINGS_TAB==='lookup'?'active':'')+'" data-tab="lookup" onclick="switchSettingsTab(\'lookup\',this)">Lookup</div>'+
-      '<div class="tab '+(SETTINGS_TAB==='sessions'?'active':'')+'" data-tab="sessions" onclick="switchSettingsTab(\'sessions\',this)">Sessions</div>'+
+      '<div class="tab active" data-tab="account">Account</div>'+
+      '<div class="tab" data-tab="email">Email</div>'+
+      '<div class="tab" data-tab="biopage">Bio Page</div>'+
+      '<div class="tab" data-tab="usernames">Usernames</div>'+
+      '<div class="tab" data-tab="lookup">Lookup</div>'+
+      '<div class="tab" data-tab="sessions">Sessions</div>'+
     '</div>'+
   '</div>'+
-  '<div class="content" id="settings-content">'+renderSettingsTab(SETTINGS_TAB)+'</div>';
+  '<div class="content" id="settings-content">'+renderTab('account')+'</div>';
 }
 
-function switchSettingsTab(tab, el){
-  SETTINGS_TAB = tab;
-  localStorage.setItem('mailserver_last_settings_tab', tab);
-  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
-  if (el) el.classList.add('active');
-  document.getElementById('settings-content').innerHTML = renderSettingsTab(tab);
-  attachHandlers();
-}
-
-function restoreSettingsTab(){
-  var tabs = document.querySelectorAll('.tab');
-  tabs.forEach(function(t){
-    if (t.dataset.tab === SETTINGS_TAB) {
-      t.classList.add('active');
-    } else {
-      t.classList.remove('active');
-    }
-  });
-}
-
-function renderSettingsTab(t){
+function renderTab(t){
   if(t==='account') return renderAccount();
   if(t==='email') return renderEmail();
   if(t==='biopage') return renderBio();
@@ -385,7 +334,7 @@ function renderAccount(){
   return '<div class="card">'+
     '<div class="card-title">Account</div>'+
     '<div style="font-size:13px;color:var(--ms-muted);font-family:var(--ms-mono);margin-top:4px">@' + USERNAME + '@' + D + ' · #' + USER_ID + '</div>'+
-    '<div style="font-size:13px;color:var(--ms-muted);margin-top:4px">Display name: <span style="color:var(--ms-text)">' + (DISPLAY_NAME || USERNAME) + '</span></div>'+
+    '<div style="font-size:12px;color:var(--ms-muted);margin-top:4px">' + USER_EMAIL + '</div>'+
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Language</div>'+
@@ -393,18 +342,8 @@ function renderAccount(){
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Change Password</div>'+
-    '<label>Current Password</label>'+
-    '<div class="input-row"><input type="password" id="pw-cur"><span class="input-show" onclick="togglePw(\'pw-cur\',this)">Show</span></div>'+
-    '<label>New Password</label>'+
-    '<div class="input-row"><input type="password" id="pw-new"><span class="input-show" onclick="togglePw(\'pw-new\',this)">Show</span></div>'+
-    '<label>Confirm New Password</label>'+
-    '<div class="input-row"><input type="password" id="pw-con"><span class="input-show" onclick="togglePw(\'pw-con\',this)">Show</span></div>'+
-    '<button class="btn btn-outline" style="margin-top:16px" onclick="changePassword()">Update Password</button>'+
-  '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">Two-Factor Authentication</div>'+
-    '<div class="card-sub">2FA is currently disabled.</div>'+
-    '<button class="btn btn-outline" onclick="showToast(\'Redirecting to 2FA setup…\')">Enable 2FA</button>'+
+    '<div class="card-sub">Password changes are managed through Firebase. Use the "Forgot Password" link on the login page to reset your password.</div>'+
+    '<button class="btn btn-outline" onclick="window.location.href=\'/forgot\'">Reset Password via Email</button>'+
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Discord</div>'+
@@ -414,28 +353,19 @@ function renderAccount(){
       '<button class="btn btn-outline" onclick="showToast(\'Token generated. Paste into /connect on Discord.\')">Generate a connect token</button>'+
     '</div>'+
   '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">Export Private Key</div>'+
-    '<div class="card-sub">Downloads your PGP private key, re-encrypted with the password you enter below.</div>'+
-    '<label>Password</label>'+
-    '<div class="input-row"><input type="password" id="pw-exp"><span class="input-show" onclick="togglePw(\'pw-exp\',this)">Show</span></div>'+
-    '<button class="btn btn-outline" style="margin-top:16px" onclick="showToast(\'Downloading private key…\')">Export Private Key (.asc)</button>'+
-  '</div>'+
   '<div class="card card-danger">'+
     '<div class="card-title" style="color:var(--ms-danger)">Delete Account</div>'+
     '<div class="card-sub">This permanently deletes your account and all mail. Type DELETE to confirm.</div>'+
     '<input type="text" placeholder="DELETE" id="del-confirm">'+
-    '<button class="btn btn-danger" style="margin-top:12px" onclick="deleteAccount()">Delete Account</button>'+
+    '<button class="btn btn-danger" style="margin-top:12px" onclick="checkDelete()">Delete Account</button>'+
   '</div>';
 }
 
 function renderEmail(){
   return '<div class="card">'+
     '<div class="card-title">Recovery Email</div>'+
-    '<div class="card-sub">Used only to send a password reset link if you forget your password. Resetting via recovery email generates a new encryption key, so previously received encrypted messages become unreadable — keep your password somewhere safe if that matters to you.</div>'+
-    '<label>Recovery Email</label>'+
-    '<input type="email" placeholder="you@example.com" id="recovery-email">'+
-    '<button class="btn btn-outline" style="margin-top:12px" onclick="showToast(\'Recovery email saved\')">Save Recovery Email</button>'+
+    '<div class="card-sub">Used only to send a password reset link if you forget your password. Your current email is: ' + USER_EMAIL + '</div>'+
+    '<button class="btn btn-outline" onclick="showToast(\'Recovery email saved\')">Save Recovery Email</button>'+
   '</div>'+
   '<div class="card">'+
     '<div class="card-title">Alias</div>'+
@@ -445,19 +375,17 @@ function renderEmail(){
 }
 
 function renderBio(){
-  var displayName = DISPLAY_NAME || USERNAME;
-  var bio = BIO_TEXT || '';
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
     '<div>'+
     '<div class="card">'+
       '<div class="card-title">Public Profile</div>'+
       '<div class="card-sub">Shown at ' + D + '/' + USERNAME + ' and ' + D + '/id/' + USER_ID + '.</div>'+
       '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
-        '<div style="width:44px;height:44px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ms-accent)">' + (displayName[0] || USERNAME[0]).toUpperCase() + '</div>'+
+        '<div style="width:44px;height:44px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--ms-accent)">' + USERNAME[0].toUpperCase() + '</div>'+
         '<button class="btn btn-outline btn-sm" onclick="showToast(\'Choose a photo to upload\')">Upload photo</button>'+
       '</div>'+
-      '<label>Display Name</label><input type="text" id="display-name-input" value="' + displayName + '" placeholder="Your display name">'+
-      '<label>Bio</label><textarea id="bio-input" placeholder="Say something about yourself…">' + bio + '</textarea>'+
+      '<label>Display Name</label><input type="text" value="' + USERNAME + '">'+
+      '<label>Bio</label><textarea placeholder="Say something about yourself…"></textarea>'+
       '<label>Profile Accent Color</label>'+
       '<div class="color-row"><div class="color-swatch" style="background:#4f7cff"></div><input type="text" value="#4f7cff" style="width:100px"></div>'+
       '<label style="margin-top:14px">Avatar Shape</label>'+
@@ -480,7 +408,7 @@ function renderBio(){
         '<div class="toggle-row"><div class="toggle"></div><span class="toggle-label">Show a "click to enter" screen</span></div>'+
         '<div class="toggle-row"><div class="toggle"></div><span class="toggle-label">Hide the view counter</span></div>'+
       '</div>'+
-      '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="saveProfile()">Save Profile</button>'+
+      '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="showToast(\'Profile saved!\')">Save Profile</button>'+
     '</div>'+
     '<div class="card">'+
       '<div class="card-title">Bio Links</div>'+
@@ -503,8 +431,8 @@ function renderBio(){
     '<div class="card">'+
       '<div class="card-title" style="margin-bottom:12px">Preview</div>'+
       '<div class="bio-preview-frame">'+
-        '<div class="bio-avatar">' + (displayName[0] || USERNAME[0]).toUpperCase() + '</div>'+
-        '<div class="bio-name">' + displayName + '</div>'+
+        '<div class="bio-avatar">' + USERNAME[0].toUpperCase() + '</div>'+
+        '<div class="bio-name">' + USERNAME + '</div>'+
         '<div class="bio-handle">@' + USERNAME + ' · ' + D + '</div>'+
         '<div class="bio-links">'+
           '<div class="bio-link-btn"><i class="ti ti-link" style="margin-right:6px"></i>My Website</div>'+
@@ -520,12 +448,12 @@ function renderBio(){
     '<div class="card" style="margin-top:0">'+
       '<div class="card-title">Profile Metadata</div>'+
       '<div class="card-sub">What shows when your link is pasted on Discord, X, iMessage, etc.</div>'+
-      '<label>Website Title</label><input type="text" value="' + displayName + ' · ' + D + '">'+
+      '<label>Website Title</label><input type="text" value="' + USERNAME + ' · ' + D + '">'+
       '<label>Website Description</label><textarea placeholder="@you — say anything. Leave blank for the default."></textarea>'+
       '<div style="margin-top:12px;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;padding:12px">'+
         '<div style="font-size:12px;color:var(--ms-muted);margin-bottom:6px">Discord embed preview</div>'+
         '<div style="border-left:3px solid var(--ms-accent);padding-left:10px">'+
-          '<div style="font-size:13px;color:var(--ms-accent);font-weight:600">' + displayName + ' · ' + D + '</div>'+
+          '<div style="font-size:13px;color:var(--ms-accent);font-weight:600">' + USERNAME + ' · ' + D + '</div>'+
           '<div style="font-size:12px;color:var(--ms-muted);margin-top:2px">@' + USERNAME + ' on ' + D + '</div>'+
         '</div>'+
       '</div>'+
@@ -539,7 +467,7 @@ function renderBio(){
 }
 
 function renderUsernames(){
-  var userList = Object.keys(getUsers());
+  var userList = USERS_LIST.length > 0 ? USERS_LIST : Object.keys(getUsers());
   var handleRows = userList.map(function(u, i){
     var isLogin = (u === USERNAME);
     return '<div class="handle-row">'+
@@ -567,24 +495,6 @@ function renderUsernames(){
     '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3–32 characters, letters/numbers/ . _ -</div>'+
   '</div>'+
   '<div class="card">'+
-    '<div class="card-title">🎁 Gift a Username</div>'+
-    '<div class="card-sub">Send one of your handles to another user. The recipient has to accept the gift before it (and its inbox routing) transfers. Your login handle can\'t be gifted.</div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">'+
-      '<input type="text" placeholder="' + D + '/handle to gift" style="flex:1;min-width:150px">'+
-      '<input type="text" placeholder="recipient: @username or #id" style="flex:1;min-width:150px">'+
-    '</div>'+
-    '<input type="text" placeholder="Add a message (optional)" style="margin-top:8px">'+
-    '<button class="btn btn-outline" style="margin-top:10px" onclick="showToast(\'Gift sent! Waiting for recipient to accept.\')">Send gift</button>'+
-  '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">⇄ Trade a Username</div>'+
-    '<div class="card-sub">Swap handles with someone else. Look up who you want to trade with, click any number of their handles you want, then any number of yours to give. They have to accept before anything moves — everything swaps at once. Both sides still cap at 30 handles total.</div>'+
-    '<div style="display:flex;gap:8px;margin-top:4px">'+
-      '<input type="text" placeholder="trade with: @username or #id" style="flex:1">'+
-      '<button class="btn btn-outline" onclick="showToast(\'Looking up user…\')">Look up</button>'+
-    '</div>'+
-  '</div>'+
-  '<div class="card">'+
     '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
     '<div class="card-sub">Every handle you own. Gift transfers a handle to another user; Release frees it for anyone to claim again. Your login handle can\'t be gifted or released here.</div>'+
     handleRows +
@@ -595,15 +505,6 @@ function renderUsernames(){
     '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'+
       '<select style="flex:1">' + userList.map(function(u){ return '<option' + (u === USERNAME ? ' selected' : '') + '>' + D + '/' + u + (u === USERNAME ? ' (login)' : '') + '</option>'; }).join('') + '</select>'+
       '<button class="btn btn-primary" onclick="showToast(\'Primary handle updated\')">Set primary</button>'+
-    '</div>'+
-    '<button class="btn btn-outline" style="margin-top:10px" onclick="showToast(\'Mailboxes re-synced\')">Re-sync handle mailboxes</button>'+
-  '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">Login Username</div>'+
-    '<div class="card-sub">Switch the username you sign in with to any handle you own. Your primary mailbox moves to handle@' + D + ', and your current login (@' + USERNAME + ') stays yours as a regular handle that still routes to you.</div>'+
-    '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'+
-      '<select style="flex:1">' + userList.map(function(u){ return '<option' + (u === USERNAME ? ' selected' : '') + '>' + D + '/' + u + (u === USERNAME ? ' (current login)' : '') + '</option>'; }).join('') + '</select>'+
-      '<button class="btn btn-primary" onclick="showToast(\'Login username changed\')">Set as login</button>'+
     '</div>'+
   '</div>';
 }
@@ -626,15 +527,23 @@ function renderSessions(){
     '<div class="card-sub">Everywhere you\'re signed in. Disconnect anything you don\'t recognise — changing your password logs out every other session automatically.</div>'+
     '<div class="session-card" style="margin-top:12px">'+
       '<div>'+
-        '<div class="session-device">Chrome · Windows<span class="session-current">this device</span></div>'+
-        '<div class="session-meta">Signed in as @' + USERNAME + '<br>Signed in ' + new Date().toLocaleString() + '</div>'+
+        '<div class="session-device">Firebase Session<span class="session-current">this device</span></div>'+
+        '<div class="session-meta">Signed in as @' + USERNAME + '<br>' + USER_EMAIL + '<br>Signed in ' + new Date().toLocaleString() + '</div>'+
       '</div>'+
-      '<button class="btn btn-outline btn-sm" onclick="showToast(\'Use Logout in the header to end your current session.\')">Log out</button>'+
+      '<button class="btn btn-outline btn-sm" onclick="logout()">Log out</button>'+
     '</div>'+
   '</div>';
 }
 
 function attachHandlers(){
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.onclick=function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
+      t.classList.add('active');
+      document.getElementById('settings-content').innerHTML=renderTab(t.dataset.tab);
+      attachHandlers();
+    };
+  });
   document.querySelectorAll('.seg-opt').forEach(function(o){
     o.onclick=function(){
       o.parentElement.querySelectorAll('.seg-opt').forEach(function(s){s.classList.remove('active')});
@@ -653,69 +562,42 @@ function togglePw(id,el){
   else{inp.type='password';el.textContent='Show';}
 }
 
-function saveProfile(){
-  var displayNameInput = document.getElementById('display-name-input');
-  var bioInput = document.getElementById('bio-input');
-  if (displayNameInput) {
-    DISPLAY_NAME = displayNameInput.value.trim() || USERNAME;
+function checkDelete(){
+  var v=document.getElementById('del-confirm');
+  if(v&&v.value==='DELETE') {
+    showToast('Account deletion requested. This will be processed.');
   }
-  if (bioInput) {
-    BIO_TEXT = bioInput.value.trim();
-  }
-  saveUserData();
-  showToast('Profile saved! Display name: ' + DISPLAY_NAME);
-  var settingsContent = document.getElementById('settings-content');
-  if (settingsContent) {
-    settingsContent.innerHTML = renderSettingsTab('biopage');
-    attachHandlers();
-  }
-}
-
-function changePassword(){
-  var cur = document.getElementById('pw-cur');
-  var pw = document.getElementById('pw-new');
-  var con = document.getElementById('pw-con');
-  if (!cur || !pw || !con) { showToast('Please fill in all password fields.'); return; }
-  var users = getUsers();
-  if (!users[USERNAME]) { showToast('User not found.'); return; }
-  if (users[USERNAME].password !== cur.value) { showToast('Current password is incorrect.'); return; }
-  if (pw.value.length < 6) { showToast('New password must be at least 6 characters.'); return; }
-  if (pw.value !== con.value) { showToast('Passwords do not match.'); return; }
-  users[USERNAME].password = pw.value;
-  saveUsers(users);
-  cur.value = '';
-  pw.value = '';
-  con.value = '';
-  showToast('Password updated successfully!');
-}
-
-function deleteAccount(){
-  var v = document.getElementById('del-confirm');
-  if (!v || v.value !== 'DELETE') { showToast('Type DELETE to confirm.'); return; }
-  var users = getUsers();
-  delete users[USERNAME];
-  saveUsers(users);
-  clearSession();
-  localStorage.removeItem('mailserver_last_tab');
-  localStorage.removeItem('mailserver_last_settings_tab');
-  showToast('Account deleted.');
-  setTimeout(function(){ window.location.href = '/'; }, 1000);
+  else showToast('Type DELETE to confirm.');
 }
 
 function claimUsername(){
-  var v = document.getElementById('claim-input');
-  if(v && v.value.length >= 3) {
+  var v=document.getElementById('claim-input');
+  if(v&&v.value.length>=3) {
+    var username = v.value.trim();
     var users = getUsers();
-    if (users[v.value]) {
-      showToast('Username "' + v.value + '" is already taken.');
+    if (users[username]) {
+      showToast('Username "' + username + '" is already taken.');
       return;
     }
-    showToast('Claimed @' + v.value + '! Mail to @' + v.value + '@' + D + ' now lands in your inbox.');
-    var settingsContent = document.getElementById('settings-content');
-    if (settingsContent) {
-      settingsContent.innerHTML = renderSettingsTab('usernames');
-      attachHandlers();
-    }
+    db.collection('usernames').doc(username).get().then(function(snapshot) {
+      if (snapshot.exists) {
+        showToast('Username "' + username + '" is already taken.');
+        return;
+      }
+      USERS_LIST.push(username);
+      showToast('Claimed @' + username + '! Mail to @' + username + '@' + D + ' now lands in your inbox.');
+      var settingsContent = document.getElementById('settings-content');
+      if (settingsContent) {
+        var activeTab = document.querySelector('.tab.active');
+        if (activeTab && activeTab.dataset.tab === 'usernames') {
+          settingsContent.innerHTML = renderTab('usernames');
+          attachHandlers();
+        }
+      }
+    }).catch(function() {
+      USERS_LIST.push(username);
+      showToast('Claimed @' + username + '!');
+    });
   } else {
     showToast('Username must be 3–32 characters.');
   }
@@ -726,8 +608,7 @@ function doLookup(){
   var r=document.getElementById('lookup-result');
   if(!v||!v.value){showToast('Enter a username or #id');return;}
   var query = v.value.trim();
-  var users = getUsers();
-  var userList = Object.keys(users);
+  var userList = USERS_LIST.length > 0 ? USERS_LIST : Object.keys(getUsers());
   var found = false;
   var username = '';
 
@@ -739,7 +620,7 @@ function doLookup(){
     }
   } else {
     var search = query.replace('@', '');
-    if (users[search]) {
+    if (userList.indexOf(search) !== -1) {
       username = search;
       found = true;
     }
@@ -752,23 +633,15 @@ function doLookup(){
   }
 
   var userIndex = userList.indexOf(username) + 1;
-  var displayName = users[username].displayName || username;
   r.classList.add('show');
   r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
-    '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (displayName[0] || username[0]).toUpperCase() + '</div>'+
-    '<div><div style="font-weight:600">' + displayName + '</div>'+
-    '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">@' + username + ' · ' + D + ' · #' + userIndex + '</div></div>'+
+    '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + username[0].toUpperCase() + '</div>'+
+    '<div><div style="font-weight:600">@' + username + '</div>'+
+    '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + username + ' · #' + userIndex + '</div></div>'+
   '</div>';
 }
 
-initUser();
-
-if (!USERNAME) {
-  window.location.href = '/login';
-}
-
 document.getElementById('unread-badge').textContent = 0;
-
-var savedTab = localStorage.getItem('mailserver_last_tab') || 'inbox';
-switchMain(savedTab);
 </script>
+</body>
+</html>
