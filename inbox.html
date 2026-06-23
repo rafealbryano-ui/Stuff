@@ -148,7 +148,7 @@ var D = 'mailserver.life';
 var USERNAME = '';
 var USER_UID = '';
 var msgs = [];
-var MAILGUN_KEY = 'a072c9bc-6af7d3d1';
+var MAILGUN_KEY = '46b3872494089269a6ce6928eee6a4dd-a072c9bc-039d1a50';
 
 auth.onAuthStateChanged(function(user) {
   if (!user) {
@@ -296,39 +296,30 @@ function closeCompose() {
 }
 
 function sendViaMailgun(to, subject, body, fromEmail, docId) {
-  var mailgunKey = 'a072c9bc-6af7d3d1';
-  
   var formData = new FormData();
   formData.append('from', fromEmail);
   formData.append('to', to);
   formData.append('subject', subject);
   formData.append('text', body);
 
-  console.log('Sending to:', to);
-  console.log('From:', fromEmail);
-  console.log('Using key:', mailgunKey);
-
   fetch('https://api.mailgun.net/v3/mailserver.life/messages', {
     method: 'POST',
     headers: {
-      'Authorization': 'Basic ' + btoa('api:' + mailgunKey)
+      'Authorization': 'Basic ' + btoa('api:' + MAILGUN_KEY)
     },
     body: formData
   })
   .then(function(response) {
-    console.log('Response status:', response.status);
-    return response.text().then(function(text) {
-      console.log('Response body:', text);
-      if (response.ok) {
-        showToast('Email sent to ' + to + ' ✅');
-        db.collection('emails').doc(docId).update({ sentToExternal: true });
-        closeCompose();
-        loadEmails();
-        return;
-      } else {
+    if (response.ok) {
+      showToast('Email sent to ' + to + ' ✅');
+      db.collection('emails').doc(docId).update({ sentToExternal: true });
+      closeCompose();
+      loadEmails();
+    } else {
+      return response.text().then(function(text) {
         throw new Error('Mailgun error: ' + response.status + ' - ' + text);
-      }
-    });
+      });
+    }
   })
   .catch(function(error) {
     console.error('Mailgun error:', error);
