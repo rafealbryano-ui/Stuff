@@ -137,7 +137,7 @@
 <header class="header">
   <a href="/" class="logo">mailserver<span>.life</span></a>
   <nav class="header-nav">
-    <a href="/app/inbox" class="btn btn-outline" onclick="navigate('/app/inbox')">Inbox</a>
+    <a href="#" class="btn btn-outline" onclick="navigateTo('inbox')">Inbox</a>
     <button class="btn btn-outline" onclick="logout()">Logout</button>
   </nav>
 </header>
@@ -145,16 +145,16 @@
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-section">Mail</div>
-    <a href="/app/inbox" class="sidebar-item active" onclick="navigate('/app/inbox');setSidebar(this)">
+    <a href="#" class="sidebar-item active" onclick="navigateTo('inbox');setSidebar(this)">
       <i class="ti ti-inbox" aria-hidden="true"></i> Inbox
       <span id="unread-badge" style="margin-left:auto;background:var(--ms-accent);color:#fff;font-size:11px;padding:1px 6px;border-radius:10px">0</span>
     </a>
-    <a href="/app/sent" class="sidebar-item" onclick="navigate('/app/sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
-    <a href="/app/tempmail" class="sidebar-item" onclick="navigate('/app/tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
-    <a href="/app/trash" class="sidebar-item" onclick="navigate('/app/trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
+    <a href="#" class="sidebar-item" onclick="navigateTo('sent');setSidebar(this)"><i class="ti ti-send" aria-hidden="true"></i> Sent</a>
+    <a href="#" class="sidebar-item" onclick="navigateTo('tempmail');setSidebar(this)"><i class="ti ti-clock" aria-hidden="true"></i> Temp mail</a>
+    <a href="#" class="sidebar-item" onclick="navigateTo('trash');setSidebar(this)"><i class="ti ti-trash" aria-hidden="true"></i> Trash</a>
     <div class="sidebar-section">Account</div>
-    <a href="/app/settings" class="sidebar-item" onclick="navigate('/app/settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
-    <a href="/app/files" class="sidebar-item" onclick="navigate('/app/files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
+    <a href="#" class="sidebar-item" onclick="navigateTo('settings');setSidebar(this)"><i class="ti ti-settings" aria-hidden="true"></i> Settings</a>
+    <a href="#" class="sidebar-item" onclick="navigateTo('files');setSidebar(this)"><i class="ti ti-file" aria-hidden="true"></i> Files</a>
   </aside>
 
   <main class="main" id="main-area"></main>
@@ -204,6 +204,10 @@ var userProfile = {};
 var currentPage = 'inbox';
 
 function getPageFromURL() {
+  var params = new URLSearchParams(window.location.search);
+  var page = params.get('page');
+  if (page) return page;
+  
   var path = window.location.pathname;
   if (path.includes('/app/')) {
     return path.split('/app/')[1] || 'inbox';
@@ -211,19 +215,20 @@ function getPageFromURL() {
   return 'inbox';
 }
 
-function navigate(url) {
-  window.history.pushState({ page: url }, '', url);
-  var page = url.split('/app/')[1] || 'inbox';
+function navigateTo(page) {
+  event.preventDefault();
+  var currentPage = page;
+  window.history.pushState({ page: page }, '', '/dashboard.html?page=' + page);
   switchMain(page);
   updateSidebar(page);
   document.title = 'mailserver.life — ' + page.charAt(0).toUpperCase() + page.slice(1);
-  event.preventDefault();
 }
 
 function updateSidebar(page) {
   document.querySelectorAll('.sidebar-item').forEach(function(el) {
     el.classList.remove('active');
-    if (el.getAttribute('href') && el.getAttribute('href').includes(page)) {
+    var href = el.getAttribute('onclick');
+    if (href && href.includes(page)) {
       el.classList.add('active');
     }
   });
@@ -420,10 +425,9 @@ function sendCompose() {
 function switchMain(s){
   renderPage(s);
   if (s !== 'settings' && s !== 'usernames' && s !== 'lookup') {
-    var basePath = '/app/';
-    var url = basePath + s;
-    if (window.location.pathname !== url) {
-      window.history.pushState({ page: url }, '', url);
+    var url = '/dashboard.html?page=' + s;
+    if (window.location.pathname + window.location.search !== url) {
+      window.history.pushState({ page: s }, '', url);
     }
     document.title = 'mailserver.life — ' + s.charAt(0).toUpperCase() + s.slice(1);
   }
@@ -603,9 +607,8 @@ function switchSettingsTab(tab) {
   document.querySelector('.tab[data-tab="' + tab + '"]').classList.add('active');
   document.getElementById('settings-content').innerHTML = renderTab(tab);
   attachHandlers();
-  // Update URL for settings sub-pages
-  var url = '/app/settings/' + tab;
-  window.history.pushState({ page: url }, '', url);
+  var url = '/dashboard.html?page=settings&tab=' + tab;
+  window.history.pushState({ page: 'settings', tab: tab }, '', url);
   document.title = 'mailserver.life — Settings — ' + tab.charAt(0).toUpperCase() + tab.slice(1);
 }
 
