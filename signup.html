@@ -35,6 +35,8 @@
     .save-password-row input[type="checkbox"]{width:16px;height:16px;accent-color:#5b8ef0;cursor:pointer}
     .save-password-row label{font-size:12px;color:rgba(255,255,255,0.5);cursor:pointer;margin:0}
     .save-password-row label:hover{color:rgba(255,255,255,0.8)}
+    .loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -170,6 +172,7 @@
       btn.disabled = true;
 
       var email = username + '@mailserver.life';
+      var counterRef = db.collection('meta').doc('counter');
 
       db.collection('handles').doc(username).get()
         .then(function(snapshot) {
@@ -182,22 +185,13 @@
           if (methods && methods.length > 0) {
             throw new Error('This username was previously registered. Please choose another.');
           }
-          return db.collection('handles').get().then(function(snapshot) {
-            var usedNumbers = [];
-            snapshot.forEach(function(doc) {
-              var num = doc.data().userNumber;
-              if (num) usedNumbers.push(num);
+          return db.runTransaction(function(transaction) {
+            return transaction.get(counterRef).then(function(counterDoc) {
+              var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+              var nextNumber = current + 1;
+              transaction.set(counterRef, { currentUserNumber: nextNumber }, { merge: true });
+              return nextNumber;
             });
-            usedNumbers.sort(function(a,b){return a-b;});
-            var nextNumber = 1;
-            for (var i = 0; i < usedNumbers.length; i++) {
-              if (usedNumbers[i] === nextNumber) {
-                nextNumber++;
-              } else if (usedNumbers[i] > nextNumber) {
-                break;
-              }
-            }
-            return nextNumber;
           });
         })
         .then(function(userNumber) {
@@ -242,7 +236,10 @@
                   saveCredentials(username, password);
                   sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
                   sessionStorage.removeItem('mailserver_claim');
-                  window.location.href = '/inbox.html';
+                  success.textContent = 'Account created with #' + userNumber + '! Redirecting...';
+                  setTimeout(function() {
+                    window.location.href = '/inbox.html';
+                  }, 2000);
                 });
             });
         })
