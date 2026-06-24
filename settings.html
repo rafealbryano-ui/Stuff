@@ -317,7 +317,8 @@ function renderAccount(){
     '<div class="card-title" style="color:var(--ms-danger)">Delete Account</div>'+
     '<div class="card-sub">This permanently deletes your account and all mail. Type DELETE to confirm.</div>'+
     '<input type="text" placeholder="DELETE" id="del-confirm">'+
-    '<button class="btn btn-danger" style="margin-top:12px" onclick="deleteAccount()">Delete Account</button>'+
+    '<button class="btn btn-danger" id="deleteAccountBtn" style="margin-top:12px" onclick="deleteAccount()">Delete Account</button>'+
+    '<div id="deleteLoading" class="claim-loading" style="margin-top:8px"><span class="loading-spinner"></span> Deleting account...</div>'+
   '</div>';
 }
 
@@ -328,38 +329,56 @@ function deleteAccount() {
     return;
   }
   
-  if (confirm('Are you sure you want to permanently delete your account?')) {
-    var user = auth.currentUser;
-    if (!user) return;
-    
-    db.collection('users').doc(user.uid).delete()
-      .then(function() {
-        var handlesRef = db.collection('handles').where('ownerUid', '==', user.uid);
-        return handlesRef.get().then(function(snapshot) {
-          var batch = db.batch();
-          snapshot.forEach(function(doc) {
-            batch.delete(doc.ref);
-          });
-          return batch.commit();
-        });
-      })
-      .then(function() {
-        return db.collection('usernames').doc(USERNAME).delete();
-      })
-      .then(function() {
-        return user.delete();
-      })
-      .then(function() {
-        showToast('Account and all handles deleted.');
-        sessionStorage.removeItem('mailserver_session');
-        setTimeout(function() {
-          window.location.href = '/';
-        }, 1500);
-      })
-      .catch(function(error) {
-        showToast('Error deleting account: ' + error.message);
-      });
+  if (!confirm('Are you sure you want to permanently delete your account? This action cannot be undone.')) return;
+  
+  var btn = document.getElementById('deleteAccountBtn');
+  var loading = document.getElementById('deleteLoading');
+  btn.disabled = true;
+  loading.classList.add('show');
+  
+  var user = auth.currentUser;
+  if (!user) {
+    showToast('No user logged in.');
+    btn.disabled = false;
+    loading.classList.remove('show');
+    return;
   }
+  
+  var userUid = user.uid;
+  
+  db.collection('handles').where('ownerUid', '==', userUid).get()
+    .then(function(snapshot) {
+      var batch = db.batch();
+      snapshot.forEach(function(doc) {
+        batch.delete(doc.ref);
+      });
+      return batch.commit();
+    })
+    .then(function() {
+      var usernameDeletePromises = userHandles.map(function(u) {
+        return db.collection('usernames').doc(u).delete().catch(function(){});
+      });
+      return Promise.all(usernameDeletePromises);
+    })
+    .then(function() {
+      return db.collection('users').doc(userUid).delete();
+    })
+    .then(function() {
+      return user.delete();
+    })
+    .then(function() {
+      showToast('Account and all handles deleted successfully.');
+      sessionStorage.removeItem('mailserver_session');
+      setTimeout(function() {
+        window.location.href = '/';
+      }, 1500);
+    })
+    .catch(function(error) {
+      console.error('Delete error:', error);
+      showToast('Error deleting account: ' + error.message);
+      btn.disabled = false;
+      loading.classList.remove('show');
+    });
 }
 
 function renderEmail(){
