@@ -1,42 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redirecting...</title>
-  <script>
-    var path = window.location.pathname;
-    
-    if (path === '/' || path === '') {
-      window.location.replace('/index.html');
-    } else if (path === '/dashboard') {
-      window.location.replace('/inbox.html');
-    } else if (path === '/inbox') {
-      window.location.replace('/inbox.html');
-    } else if (path === '/sent') {
-      window.location.replace('/sent.html');
-    } else if (path === '/tempmail') {
-      window.location.replace('/tempmail.html');
-    } else if (path === '/trash') {
-      window.location.replace('/trash.html');
-    } else if (path === '/files') {
-      window.location.replace('/files.html');
-    } else if (path === '/settings') {
-      var params = new URLSearchParams(window.location.search);
-      var tab = params.get('tab') || 'account';
-      window.location.replace('/settings.html?tab=' + tab);
-    } else if (path === '/login') {
-      window.location.replace('/login.html');
-    } else if (path === '/signup') {
-      window.location.replace('/signup.html');
-    } else if (path === '/forgot') {
-      window.location.replace('/forgot.html');
-    } else if (!path.includes('.') && path !== '/') {
-      window.location.replace(path + '.html');
-    }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mailserver.life</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+.loading-spinner{width:30px;height:30px;border:3px solid #1a1a1a;border-top-color:#5b8ef0;border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.profile-container{max-width:500px;margin:0 auto;padding:40px 20px}
+.profile-card{background:#131313;border:1px solid #222;border-radius:16px;overflow:hidden}
+.profile-top{padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center}
+.profile-badge{font-size:11px;color:#888;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;padding:3px 12px;margin-bottom:14px;letter-spacing:.02em}
+.profile-avatar-ring{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1a1a1a 55%,#333 80%,#555 100%);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 0 0 1px #333,0 0 20px rgba(255,255,255,0.06)}
+.profile-avatar-inner{width:78px;height:78px;border-radius:50%;background:#181818;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.profile-avatar-inner img{width:100%;height:100%;object-fit:cover}
+.profile-handle{font-size:16px;color:#e0e0e0;font-weight:500;letter-spacing:.01em;margin-bottom:4px}
+.profile-bio{font-size:12px;color:#888;margin:8px 0 14px;text-align:center;max-width:280px;line-height:1.5}
+.profile-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px}
+.profile-tag{font-size:11px;color:#e0e0e0;background:#222;border:1px solid #3a3a3a;border-radius:20px;padding:3px 10px;cursor:pointer;transition:background .15s}
+.profile-tag:hover{background:#2a2a2a}
+.profile-tag a{color:#e0e0e0;text-decoration:none;cursor:pointer}
+.profile-tag a:hover{color:#fff}
+.profile-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid #1c1c1c}
+.profile-footer span{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
+.profile-footer .views{color:#888;font-weight:500}
+.error-msg{color:#888;text-align:center;padding:60px 20px;font-size:14px}
+.error-msg a{color:#5b8ef0;text-decoration:none}
+</style>
 </head>
 <body>
-  <p>Redirecting...</p>
+<div id="root" style="padding:20px">
+  <div class="loading-spinner"></div>
+</div>
+
+<script>
+var firebaseConfig = {
+  apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+  authDomain: "mailserver-life.firebaseapp.com",
+  projectId: "mailserver-life",
+  storageBucket: "mailserver-life.firebasestorage.app",
+  messagingSenderId: "195734676668",
+  appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+  measurementId: "G-V216FC1QMD"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+
+var D = 'mailserver.life';
+
+function getPath() {
+  return window.location.pathname;
+}
+
+function getUsernameFromPath(path) {
+  if (path.startsWith('/user/')) {
+    var username = path.replace('/user/', '');
+    if (username.endsWith('/')) username = username.slice(0, -1);
+    if (username.endsWith('.html')) username = username.slice(0, -5);
+    return username;
+  }
+  return null;
+}
+
+function redirectTo(url) {
+  window.location.replace(url);
+}
+
+function handleRedirects() {
+  var path = getPath();
+  
+  // User profile routes – render directly (no redirect)
+  if (path.startsWith('/user/')) {
+    loadProfile();
+    return;
+  }
+  
+  // Known page routes – redirect to .html
+  var pageMap = {
+    '/': '/index.html',
+    '/dashboard': '/inbox.html',
+    '/inbox': '/inbox.html',
+    '/sent': '/sent.html',
+    '/tempmail': '/tempmail.html',
+    '/trash': '/trash.html',
+    '/files': '/files.html',
+    '/settings': '/settings.html',
+    '/login': '/login.html',
+    '/signup': '/signup.html',
+    '/forgot': '/forgot.html'
+  };
+  
+  if (pageMap[path] !== undefined) {
+    redirectTo(pageMap[path]);
+    return;
+  }
+  
+  // If path doesn't contain a dot, try appending .html
+  if (!path.includes('.') && path !== '/') {
+    redirectTo(path + '.html');
+    return;
+  }
+  
+  // Fallback: go home
+  redirectTo('/');
+}
+
+function loadProfile() {
+  var root = document.getElementById('root');
+  var username = getUsernameFromPath(getPath());
+  
+  if (!username) {
+    root.innerHTML = '<div class="error-msg">Invalid profile URL. <a href="/">Go home</a></div>';
+    return;
+  }
+
+  db.collection('handles').doc(username).get()
+    .then(function(doc) {
+      if (!doc.exists) {
+        root.innerHTML = '<div class="error-msg">User @' + username + ' not found. <a href="/">Go home</a></div>';
+        return;
+      }
+      var handleData = doc.data();
+      var currentViews = handleData.views || 0;
+      var newViews = currentViews + 1;
+      return db.collection('handles').doc(username).update({ views: newViews })
+        .then(function() {
+          handleData.views = newViews;
+          return db.collection('handles').where('ownerUid', '==', handleData.ownerUid).get()
+            .then(function(snapshot) {
+              var allHandles = [];
+              snapshot.forEach(function(d) {
+                allHandles.push(d.data());
+              });
+              allHandles.sort(function(a, b) {
+                return (a.userNumber || 0) - (b.userNumber || 0);
+              });
+              renderProfile(root, handleData, allHandles);
+            });
+        });
+    })
+    .catch(function(err) {
+      root.innerHTML = '<div class="error-msg">Error loading profile. <a href="/">Go home</a></div>';
+      console.error(err);
+    });
+}
+
+function renderProfile(container, handleData, allHandles) {
+  var avatarUrl = handleData.avatarUrl || '';
+  var displayName = handleData.displayName || handleData.username;
+  var bio = handleData.bio || 'No bio yet.';
+  var userNumber = handleData.userNumber || 0;
+  var ownerUid = handleData.ownerUid;
+  var username = handleData.username;
+  var views = handleData.views || 0;
+
+  var aliases = allHandles.filter(function(h) {
+    return h.ownerUid === ownerUid && h.username !== username;
+  });
+
+  var avatarHtml = '';
+  if (avatarUrl) {
+    avatarHtml = '<img src="' + avatarUrl + '" alt="' + displayName + '">';
+  } else {
+    var initial = displayName ? displayName[0].toUpperCase() : username[0].toUpperCase();
+    avatarHtml = '<span style="font-size:28px;font-weight:700;color:#e8e8e8">' + initial + '</span>';
+  }
+
+  var tagsHtml = '';
+  if (aliases.length > 0) {
+    aliases.forEach(function(a) {
+      tagsHtml += '<span class="profile-tag"><a href="#" onclick="window.location.href=\'/\';return false;">@' + a.username + '</a></span>';
+    });
+  } else {
+    tagsHtml = '<span class="profile-tag" style="color:#555;border-color:#2a2a2a">No aliases</span>';
+  }
+
+  var html = '';
+  html += '<div class="profile-card">';
+  html += '  <div class="profile-top">';
+  html += '    <div class="profile-badge">#' + userNumber + ' · ' + D + '</div>';
+  html += '    <div class="profile-avatar-ring">';
+  html += '      <div class="profile-avatar-inner">' + avatarHtml + '</div>';
+  html += '    </div>';
+  html += '    <div class="profile-handle">@' + username + '</div>';
+  html += '    <div class="profile-bio">' + bio + '</div>';
+  html += '    <div class="profile-tags">' + tagsHtml + '</div>';
+  html += '  </div>';
+  html += '  <div class="profile-footer">';
+  html += '    <span class="views">' + views + ' VIEWS</span>';
+  html += '  </div>';
+  html += '</div>';
+
+  container.innerHTML = html;
+  document.title = '@' + username;
+}
+
+// If it's a profile route, load the profile; otherwise redirect
+handleRedirects();
+</script>
 </body>
 </html>
