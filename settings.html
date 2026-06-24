@@ -7,7 +7,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -165,6 +164,10 @@
 <div class="toast" id="toast-el"></div>
 
 <script>
+// CLOUDINARY CONFIG - REPLACED WITH YOUR VALUES
+var CLOUDINARY_CLOUD_NAME = 'dtn74z09y';
+var CLOUDINARY_UPLOAD_PRESET = 'mailserver_avatar';
+
 var firebaseConfig = {
   apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
   authDomain: "mailserver-life.firebaseapp.com",
@@ -177,7 +180,6 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var auth = firebase.auth();
 var db = firebase.firestore();
-var storage = firebase.storage();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 var D = 'mailserver.life';
@@ -589,37 +591,40 @@ function uploadAvatar(event) {
   var input = event.target;
   showToast('Uploading avatar...');
   
-  var filePath = 'avatars/' + USER_UID + '/' + Date.now() + '_' + file.name;
-  var storageRef = storage.ref(filePath);
-  var uploadTask = storageRef.put(file);
+  var formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
   
-  uploadTask.on('state_changed', function(snapshot) {
-    var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-    if (progress % 10 === 0) {
-      showToast('Uploading... ' + Math.round(progress) + '%');
+  var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
+  
+  fetch(url, {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    if (data.error) {
+      showToast('Upload failed: ' + data.error.message);
+      input.value = '';
+      return;
     }
-  }, function(error) {
-    console.error('Upload error:', error);
+    var downloadURL = data.secure_url;
+    db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
+      .then(function() {
+        userProfile.avatarUrl = downloadURL;
+        syncProfileToHandles();
+        showToast('Avatar uploaded successfully! ✅');
+        input.value = '';
+        renderTab('biopage');
+      })
+      .catch(function(error) {
+        showToast('Error saving avatar URL: ' + error.message);
+        input.value = '';
+      });
+  })
+  .catch(function(error) {
     showToast('Upload failed: ' + error.message);
     input.value = '';
-  }, function() {
-    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-      db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
-        .then(function() {
-          userProfile.avatarUrl = downloadURL;
-          syncProfileToHandles();
-          showToast('Avatar uploaded successfully! ✅');
-          input.value = '';
-          renderTab('biopage');
-        })
-        .catch(function(error) {
-          showToast('Error saving avatar URL: ' + error.message);
-          input.value = '';
-        });
-    }).catch(function(error) {
-      showToast('Error getting download URL: ' + error.message);
-      input.value = '';
-    });
   });
 }
 
