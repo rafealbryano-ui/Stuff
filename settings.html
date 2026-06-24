@@ -741,28 +741,37 @@ function releaseHandle(username) {
     showToast('Cannot release your login handle.');
     return;
   }
-  
-  if (!confirm('Release @' + username + '? This will renumber all handles with higher numbers.')) return;
-  
-  var idx = userHandles.indexOf(username);
-  if (idx > -1) {
-    userHandles.splice(idx, 1);
-  }
-  
-  var batch = db.batch();
-  batch.update(db.collection('users').doc(USER_UID), { handles: userHandles });
-  batch.delete(db.collection('handles').doc(username));
-  batch.delete(db.collection('usernames').doc(username));
-  
-  batch.commit().then(function() {
-    // Now renumber all handles with userNumber > releasedNumber
-    var releasedNumber = parseInt(document.querySelector('[data-username="' + username + '"]')?.getAttribute('data-number')) || 0;
-    // We need to find the number from the handle document, so we'll query it first.
-    db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(snapshot) {
+
+  if (!confirm('Release @' + username + '? This will renumber handles after it.')) return;
+
+  var handleRef = db.collection('handles').doc(username);
+  var userRef = db.collection('users').doc(USER_UID);
+  var usernameRef = db.collection('usernames').doc(username);
+
+  handleRef.get().then(function(doc) {
+    if (!doc.exists) {
+      showToast('Handle not found.');
+      return;
+    }
+    var releasedNumber = doc.data().userNumber || 0;
+
+    var idx = userHandles.indexOf(username);
+    if (idx > -1) {
+      userHandles.splice(idx, 1);
+    }
+
+    var batch = db.batch();
+    batch.delete(handleRef);
+    batch.delete(usernameRef);
+    batch.update(userRef, { handles: userHandles });
+
+    return batch.commit().then(function() {
+      return db.collection('handles').where('ownerUid', '==', USER_UID).get();
+    }).then(function(snapshot) {
       var toUpdate = [];
       snapshot.forEach(function(doc) {
         var data = doc.data();
-        if (data.username !== username && data.userNumber > releasedNumber) {
+        if (data.userNumber > releasedNumber) {
           toUpdate.push({ ref: doc.ref, oldNum: data.userNumber });
         }
       });
@@ -779,8 +788,6 @@ function releaseHandle(username) {
         showToast('Released @' + username + ' and renumbered handles.');
         renderUsernames();
       });
-    }).catch(function(error) {
-      showToast('Error renumbering handles: ' + error.message);
     });
   }).catch(function(error) {
     showToast('Error releasing handle: ' + error.message);
