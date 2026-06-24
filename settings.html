@@ -107,6 +107,10 @@
     .session-device{font-weight:600;color:var(--ms-text);margin-bottom:4px;font-size:13px}
     .session-meta{color:var(--ms-muted);font-size:12px;line-height:1.6}
     .session-current{font-size:11px;color:var(--ms-success);background:#0a2e1e;padding:2px 7px;border-radius:4px;margin-left:8px}
+    .loading-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:8px;vertical-align:middle}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .claim-loading{display:none;align-items:center;gap:8px;color:var(--ms-muted);font-size:13px}
+    .claim-loading.show{display:inline-flex}
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
@@ -623,8 +627,9 @@ function renderUsernames() {
           '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
           '<input type="text" id="claim-input" placeholder="username" style="border:none;border-radius:0;background:transparent;flex:1">'+
         '</div>'+
-        '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
+        '<button class="btn btn-primary" id="claimBtn" onclick="claimUsername()">Claim</button>'+
       '</div>'+
+      '<div id="claimLoading" class="claim-loading"><span class="loading-spinner"></span> Processing…</div>'+
       '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max ' + maxAliases + ' aliases</div>'+
     '</div>'+
     '<div class="card">'+
@@ -661,7 +666,10 @@ function renderUsernames() {
 
 function claimUsername() {
   var input = document.getElementById('claim-input');
-  if (!input) return;
+  var btn = document.getElementById('claimBtn');
+  var loading = document.getElementById('claimLoading');
+  if (!input || !btn || !loading) return;
+  
   var username = input.value.trim().toLowerCase();
   
   if (!username || !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
@@ -672,66 +680,66 @@ function claimUsername() {
   var userRef = db.collection('users').doc(USER_UID);
   var handleRef = db.collection('handles').doc(username);
   var usernameRef = db.collection('usernames').doc(username);
+  var counterRef = db.collection('meta').doc('counter');
   
-  db.collection('handles').get().then(function(allHandles) {
-    var usedNumbers = [];
-    allHandles.forEach(function(doc) {
-      var num = doc.data().userNumber;
-      if (num) usedNumbers.push(num);
-    });
-    usedNumbers.sort(function(a,b){return a-b;});
-    var nextNumber = 1;
-    for (var i = 0; i < usedNumbers.length; i++) {
-      if (usedNumbers[i] === nextNumber) {
-        nextNumber++;
-      } else if (usedNumbers[i] > nextNumber) {
-        break;
-      }
-    }
-    return handleRef.get().then(function(handleDoc) {
-      if (handleDoc.exists) {
-        showToast('Username "' + username + '" is already taken.');
-        return;
-      }
-      return userRef.get().then(function(userDoc) {
-        if (!userDoc.exists) {
-          showToast('Your account could not be found.');
-          return;
+  btn.disabled = true;
+  loading.classList.add('show');
+  
+  db.runTransaction(function(transaction) {
+    return transaction.get(counterRef).then(function(counterDoc) {
+      return transaction.get(handleRef).then(function(handleDoc) {
+        if (handleDoc.exists) {
+          throw new Error('Username "' + username + '" is already taken.');
         }
-        var userData = userDoc.data();
-        var handles = userData.handles || [];
-        var aliasCount = handles.filter(function(h) { return h !== USERNAME; }).length;
-        if (aliasCount >= 14) {
-          showToast('You already have 14 aliases (maximum).');
-          return;
-        }
-        if (handles.includes(username)) {
-          showToast('You already own this username.');
-          return;
-        }
-        handles.push(username);
-        var handleData = {
-          username: username,
-          ownerUid: USER_UID,
-          userNumber: nextNumber,
-          displayName: userProfile.displayName || USERNAME,
-          bio: userProfile.bio || '',
-          avatarUrl: userProfile.avatarUrl || '',
-          accentColor: userProfile.accentColor || '#4f7cff',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        var batch = db.batch();
-        batch.set(handleRef, handleData);
-        batch.set(usernameRef, { uid: USER_UID });
-        batch.update(userRef, { handles: handles });
-        return batch.commit().then(function() {
-          userHandles.push(username);
-          showToast('Claimed @' + username + ' with #' + nextNumber + ' ✅');
-          renderUsernames();
+        return transaction.get(userRef).then(function(userDoc) {
+          if (!userDoc.exists) {
+            throw new Error('Your account could not be found.');
+          }
+          var userData = userDoc.data();
+          var handles = userData.handles || [];
+          var aliasCount = handles.filter(function(h) { return h !== USERNAME; }).length;
+          if (aliasCount >= 14) {
+            throw new Error('You already have 14 aliases (maximum).');
+          }
+          if (handles.includes(username)) {
+            throw new Error('You already own this username.');
+          }
+          
+          var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+          var newNumber = current + 1;
+          handles.push(username);
+          
+          var handleData = {
+            username: username,
+            ownerUid: USER_UID,
+            userNumber: newNumber,
+            displayName: userProfile.displayName || USERNAME,
+            bio: userProfile.bio || '',
+            avatarUrl: userProfile.avatarUrl || '',
+            accentColor: userProfile.accentColor || '#4f7cff',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
+          transaction.set(handleRef, handleData);
+          transaction.set(usernameRef, { uid: USER_UID });
+          transaction.update(userRef, { handles: handles });
+          
+          return newNumber;
         });
       });
     });
+  }).then(function(newNumber) {
+    userHandles.push(username);
+    showToast('Claimed @' + username + ' with #' + newNumber + ' ✅');
+    setTimeout(function() {
+      btn.disabled = false;
+      loading.classList.remove('show');
+      renderUsernames();
+    }, 2000);
   }).catch(function(error) {
+    btn.disabled = false;
+    loading.classList.remove('show');
     showToast('Error claiming username: ' + error.message);
   });
 }
@@ -790,10 +798,6 @@ function releaseHandle(username) {
           return db.collection('users').doc(uid).get().then(function(userDoc) {
             if (userDoc.exists) {
               var userData = userDoc.data();
-              var mainHandle = userData.handles ? userData.handles[0] : ''; // if the main handle was among the renumbered ones, update userNumber
-              // We'll just update the userNumber to the new number if it matches a handle that got renumbered.
-              // Actually easier: we can update all user documents to match the handle's userNumber for the main handle.
-              // But to keep it simple, we'll just update the userNumber field if it's greater than releasedNumber.
               if (userData.userNumber > releasedNumber) {
                 var newUserNumber = userData.userNumber - 1;
                 return db.collection('users').doc(uid).update({ userNumber: newUserNumber });
