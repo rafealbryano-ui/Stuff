@@ -673,10 +673,9 @@ function claimUsername() {
   var handleRef = db.collection('handles').doc(username);
   var usernameRef = db.collection('usernames').doc(username);
   
-  // Find the smallest available number
-  db.collection('handles').get().then(function(snapshot) {
+  db.collection('handles').get().then(function(allHandles) {
     var usedNumbers = [];
-    snapshot.forEach(function(doc) {
+    allHandles.forEach(function(doc) {
       var num = doc.data().userNumber;
       if (num) usedNumbers.push(num);
     });
@@ -689,7 +688,6 @@ function claimUsername() {
         break;
       }
     }
-    // Now check username availability and claim
     return handleRef.get().then(function(handleDoc) {
       if (handleDoc.exists) {
         showToast('Username "' + username + '" is already taken.');
@@ -744,7 +742,7 @@ function releaseHandle(username) {
     return;
   }
   
-  if (!confirm('Release @' + username + '? It will become available for others to claim.')) return;
+  if (!confirm('Release @' + username + '? This will renumber all handles with higher numbers.')) return;
   
   var idx = userHandles.indexOf(username);
   if (idx > -1) {
@@ -757,8 +755,33 @@ function releaseHandle(username) {
   batch.delete(db.collection('usernames').doc(username));
   
   batch.commit().then(function() {
-    showToast('Released @' + username);
-    renderUsernames();
+    // Now renumber all handles with userNumber > releasedNumber
+    var releasedNumber = parseInt(document.querySelector('[data-username="' + username + '"]')?.getAttribute('data-number')) || 0;
+    // We need to find the number from the handle document, so we'll query it first.
+    db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(snapshot) {
+      var toUpdate = [];
+      snapshot.forEach(function(doc) {
+        var data = doc.data();
+        if (data.username !== username && data.userNumber > releasedNumber) {
+          toUpdate.push({ ref: doc.ref, oldNum: data.userNumber });
+        }
+      });
+      if (toUpdate.length === 0) {
+        showToast('Released @' + username);
+        renderUsernames();
+        return;
+      }
+      var updateBatch = db.batch();
+      toUpdate.forEach(function(item) {
+        updateBatch.update(item.ref, { userNumber: item.oldNum - 1 });
+      });
+      return updateBatch.commit().then(function() {
+        showToast('Released @' + username + ' and renumbered handles.');
+        renderUsernames();
+      });
+    }).catch(function(error) {
+      showToast('Error renumbering handles: ' + error.message);
+    });
   }).catch(function(error) {
     showToast('Error releasing handle: ' + error.message);
   });
