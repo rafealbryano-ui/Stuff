@@ -76,6 +76,7 @@
     .handle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ms-border)}
     .handle-row:last-child{border-bottom:none}
     .handle-name{font-family:var(--ms-mono);font-size:13px;color:var(--ms-text)}
+    .handle-number{font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono);margin-left:8px}
     .badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#1a2a6e;color:var(--ms-accent);font-weight:500;margin-left:6px}
     .handle-actions{display:flex;gap:6px}
     .btn-sm{font-size:12px;padding:4px 10px;border-radius:5px}
@@ -176,8 +177,8 @@ var USERNAME = '';
 var USER_ID = 0;
 var USER_EMAIL = '';
 var USER_UID = '';
-var USERS_LIST = [];
 var userProfile = {};
+var userHandles = [];
 
 function getTabFromURL() {
   var params = new URLSearchParams(window.location.search);
@@ -222,11 +223,13 @@ function loadUserData() {
     if (doc.exists) {
       var data = doc.data();
       USERNAME = data.username || USERNAME;
-      USERS_LIST = data.handles || [USERNAME];
       USER_ID = data.userNumber || 0;
       userProfile = data;
+      userHandles = data.handles || [USERNAME];
       
       document.getElementById('userEmail').textContent = USER_EMAIL + ' · @' + USERNAME + ' · #' + USER_ID;
+      
+      ensureMainHandleExists();
       
       var tab = getTabFromURL();
       updateActiveTab(tab);
@@ -234,6 +237,44 @@ function loadUserData() {
     }
   }).catch(function(err) {
     console.error('Error loading user data:', err);
+  });
+}
+
+function ensureMainHandleExists() {
+  var handleRef = db.collection('handles').doc(USERNAME);
+  handleRef.get().then(function(doc) {
+    if (!doc.exists) {
+      var data = {
+        username: USERNAME,
+        ownerUid: USER_UID,
+        userNumber: USER_ID,
+        displayName: userProfile.displayName || USERNAME,
+        bio: userProfile.bio || '',
+        avatarUrl: userProfile.avatarUrl || '',
+        accentColor: userProfile.accentColor || '#4f7cff',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      handleRef.set(data);
+    }
+  });
+}
+
+function syncProfileToHandles() {
+  var updates = {
+    displayName: userProfile.displayName || USERNAME,
+    bio: userProfile.bio || '',
+    avatarUrl: userProfile.avatarUrl || '',
+    accentColor: userProfile.accentColor || '#4f7cff'
+  };
+  var handlesRef = db.collection('handles').where('ownerUid', '==', USER_UID);
+  handlesRef.get().then(function(snapshot) {
+    var batch = db.batch();
+    snapshot.forEach(function(doc) {
+      batch.update(doc.ref, updates);
+    });
+    return batch.commit();
+  }).catch(function(err) {
+    console.warn('Could not sync handles:', err);
   });
 }
 
@@ -289,13 +330,23 @@ function deleteAccount() {
     
     db.collection('users').doc(user.uid).delete()
       .then(function() {
+        var handlesRef = db.collection('handles').where('ownerUid', '==', user.uid);
+        return handlesRef.get().then(function(snapshot) {
+          var batch = db.batch();
+          snapshot.forEach(function(doc) {
+            batch.delete(doc.ref);
+          });
+          return batch.commit();
+        });
+      })
+      .then(function() {
         return db.collection('usernames').doc(USERNAME).delete();
       })
       .then(function() {
         return user.delete();
       })
       .then(function() {
-        showToast('Account deleted successfully.');
+        showToast('Account and all handles deleted.');
         sessionStorage.removeItem('mailserver_session');
         setTimeout(function() {
           window.location.href = '/';
@@ -463,6 +514,7 @@ function uploadAvatar(event) {
       db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
         .then(function() {
           userProfile.avatarUrl = downloadURL;
+          syncProfileToHandles();
           showToast('Avatar uploaded! ✅');
           renderTab('biopage');
         });
@@ -488,6 +540,7 @@ function saveProfile() {
   db.collection('users').doc(USER_UID).update(updates)
     .then(function() {
       Object.assign(userProfile, updates);
+      syncProfileToHandles();
       showToast('Profile saved! ✅');
       renderTab('biopage');
     })
@@ -532,57 +585,70 @@ function saveSocials() {
     });
 }
 
-function renderUsernames(){
-  var userList = USERS_LIST.length > 0 ? USERS_LIST : [USERNAME];
-  var handleRows = userList.map(function(u, i){
-    var isLogin = (u === USERNAME);
-    return '<div class="handle-row">'+
-      '<div><span class="handle-name">' + D + '/' + u + '</span>' + (isLogin ? '<span class="badge">LOGIN</span><span class="badge">BIOPAGE</span>' : '<span class="badge">ALIAS</span>') + '</div>'+
-      '<div class="handle-actions">' +
-        (isLogin ? '' : '<button class="btn btn-outline btn-sm" onclick="releaseHandle(\'' + u + '\')">Release</button>') +
+function renderUsernames() {
+  var container = document.getElementById('settingsContent');
+  if (!container) return;
+  
+  db.collection('handles').where('ownerUid', '==', USER_UID).orderBy('userNumber', 'asc').get().then(function(snapshot) {
+    var handles = [];
+    snapshot.forEach(function(doc) {
+      handles.push(doc.data());
+    });
+    
+    var handleRows = handles.map(function(h) {
+      var isLogin = (h.username === USERNAME);
+      var number = h.userNumber || 0;
+      return '<div class="handle-row">'+
+        '<div><span class="handle-name">' + D + '/' + h.username + '</span><span class="handle-number">#' + number + '</span>' + 
+        (isLogin ? '<span class="badge">LOGIN</span><span class="badge">BIOPAGE</span>' : '<span class="badge">ALIAS</span>') + 
+        '</div>'+
+        '<div class="handle-actions">' +
+          (isLogin ? '' : '<button class="btn btn-outline btn-sm" onclick="releaseHandle(\'' + h.username + '\')">Release</button>') +
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    var count = handles.length;
+    var maxHandles = 15;
+    
+    var html = '<div class="card">'+
+      '<div class="card-title">Claim a Username</div>'+
+      '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage with its own user number. You own ' + count + ' of ' + maxHandles + '.</div>'+
+      '<div style="display:flex;gap:8px;margin-top:4px">'+
+        '<div style="display:flex;align-items:center;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden;flex:1">'+
+          '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
+          '<input type="text" id="claim-input" placeholder="username" style="border:none;border-radius:0;background:transparent;flex:1">'+
+        '</div>'+
+        '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max 15 handles</div>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
+      '<div class="card-sub">Every handle you own. Your login handle can\'t be released.</div>'+
+      handleRows +
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Primary Handle</div>'+
+      '<div class="card-sub">Pick which of your handles is your biopage.</div>'+
+      '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'+
+        '<select style="flex:1" id="primaryHandleSelect">' + handles.map(function(h){ return '<option' + (h.username === USERNAME ? ' selected' : '') + '>' + D + '/' + h.username + (h.username === USERNAME ? ' (login)' : '') + '</option>'; }).join('') + '</select>'+
+        '<button class="btn btn-primary" onclick="setPrimaryHandle()">Set primary</button>'+
       '</div>'+
     '</div>';
-  }).join('');
-
-  var count = userList.length;
-  var maxHandles = 15;
-
-  return '<div class="card">'+
-    '<div class="card-title">Claim a Username</div>'+
-    '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage you can point at your profile. You own ' + count + ' of ' + maxHandles + '.</div>'+
-    '<div style="display:flex;gap:8px;margin-top:4px">'+
-      '<div style="display:flex;align-items:center;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden;flex:1">'+
-        '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
-        '<input type="text" id="claim-input" placeholder="username" style="border:none;border-radius:0;background:transparent;flex:1">'+
-      '</div>'+
-      '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
-    '</div>'+
-    '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max 15 handles</div>'+
-  '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
-    '<div class="card-sub">Every handle you own. Your login handle can\'t be released.</div>'+
-    handleRows +
-  '</div>'+
-  '<div class="card">'+
-    '<div class="card-title">Primary Handle</div>'+
-    '<div class="card-sub">Pick which of your handles is your biopage.</div>'+
-    '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">'+
-      '<select style="flex:1" id="primaryHandleSelect">' + userList.map(function(u){ return '<option' + (u === USERNAME ? ' selected' : '') + '>' + D + '/' + u + (u === USERNAME ? ' (login)' : '') + '</option>'; }).join('') + '</select>'+
-      '<button class="btn btn-primary" onclick="setPrimaryHandle()">Set primary</button>'+
-    '</div>'+
-  '</div>';
+    
+    container.innerHTML = html;
+    attachHandlers();
+  }).catch(function(err) {
+    console.error('Error loading handles:', err);
+    container.innerHTML = '<div style="color:var(--ms-muted)">Error loading handles.</div>';
+  });
 }
 
-function claimUsername(){
-  var v=document.getElementById('claim-input');
-  if(!v) return;
+function claimUsername() {
+  var v = document.getElementById('claim-input');
+  if (!v) return;
   var username = v.value.trim().toLowerCase();
-  
-  if (USERS_LIST.length >= 15) {
-    showToast('You already have 15 handles (maximum).');
-    return;
-  }
   
   if (!username || !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
     showToast('Username must be 3-24 characters (letters, numbers, underscores).');
@@ -595,17 +661,49 @@ function claimUsername(){
       return;
     }
     
-    USERS_LIST.push(username);
-    db.collection('users').doc(USER_UID).update({ handles: USERS_LIST });
-    db.collection('usernames').doc(username).set({
-      uid: USER_UID,
-      claimedAt: firebase.firestore.FieldValue.serverTimestamp()
+    // Check total handles count
+    db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(handleSnap) {
+      if (handleSnap.size >= 15) {
+        showToast('You already have 15 handles (maximum).');
+        return;
+      }
+      
+      // Get next user number
+      var counterRef = db.collection('meta').doc('counter');
+      db.runTransaction(function(transaction) {
+        return transaction.get(counterRef).then(function(doc) {
+          var current = doc.exists ? doc.data().currentUserNumber : 0;
+          var newNumber = current + 1;
+          transaction.update(counterRef, { currentUserNumber: newNumber });
+          return newNumber;
+        });
+      }).then(function(newNumber) {
+        // Create handle document
+        var handleData = {
+          username: username,
+          ownerUid: USER_UID,
+          userNumber: newNumber,
+          displayName: userProfile.displayName || USERNAME,
+          bio: userProfile.bio || '',
+          avatarUrl: userProfile.avatarUrl || '',
+          accentColor: userProfile.accentColor || '#4f7cff',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        return db.collection('handles').doc(username).set(handleData);
+      }).then(function() {
+        // Add to user's handles array
+        var updatedHandles = userHandles.concat([username]);
+        return db.collection('users').doc(USER_UID).update({ handles: updatedHandles });
+      }).then(function() {
+        userHandles.push(username);
+        showToast('Claimed @' + username + ' with #' + (userProfile.userNumber ? '??' : '') + '! ✅');
+        renderTab('usernames');
+      }).catch(function(error) {
+        showToast('Error claiming username: ' + error.message);
+      });
     });
-    
-    showToast('Claimed @' + username + '! ✅');
-    renderTab('usernames');
   }).catch(function() {
-    showToast('Error claiming username.');
+    showToast('Error checking username availability.');
   });
 }
 
@@ -615,14 +713,25 @@ function releaseHandle(username) {
     return;
   }
   
-  var index = USERS_LIST.indexOf(username);
-  if (index > -1) {
-    USERS_LIST.splice(index, 1);
-    db.collection('users').doc(USER_UID).update({ handles: USERS_LIST });
-    db.collection('usernames').doc(username).delete();
+  if (!confirm('Release @' + username + '? It will become available for others to claim.')) return;
+  
+  // Remove from user's handles array
+  var idx = userHandles.indexOf(username);
+  if (idx > -1) {
+    userHandles.splice(idx, 1);
+  }
+  
+  var batch = db.batch();
+  batch.update(db.collection('users').doc(USER_UID), { handles: userHandles });
+  batch.delete(db.collection('handles').doc(username));
+  batch.delete(db.collection('usernames').doc(username));
+  
+  batch.commit().then(function() {
     showToast('Released @' + username);
     renderTab('usernames');
-  }
+  }).catch(function(error) {
+    showToast('Error releasing handle: ' + error.message);
+  });
 }
 
 function setPrimaryHandle() {
@@ -656,7 +765,7 @@ function doLookup(){
   
   if (query.startsWith('#')) {
     var id = parseInt(query.replace('#', ''));
-    db.collection('users').where('userNumber', '==', id).get()
+    db.collection('handles').where('userNumber', '==', id).get()
       .then(function(snapshot) {
         if (snapshot.empty) {
           r.classList.add('show');
@@ -677,29 +786,21 @@ function doLookup(){
       });
   } else {
     var username = query.replace('@', '');
-    db.collection('usernames').doc(username).get()
-      .then(function(snapshot) {
-        if (!snapshot.exists) {
+    db.collection('handles').doc(username).get()
+      .then(function(doc) {
+        if (!doc.exists) {
           r.classList.add('show');
           r.innerHTML = '<div style="color:var(--ms-muted);text-align:center;padding:12px">User not found.</div>';
           return;
         }
-        var uid = snapshot.data().uid;
-        db.collection('users').doc(uid).get()
-          .then(function(doc) {
-            if (!doc.exists) {
-              r.innerHTML = '<div style="color:var(--ms-muted);text-align:center;padding:12px">User not found.</div>';
-              return;
-            }
-            var data = doc.data();
-            r.classList.add('show');
-            r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
-              '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (data.displayName || data.username)[0].toUpperCase() + '</div>'+
-              '<div><div style="font-weight:600">@' + data.username + '</div>'+
-              '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + data.username + ' · #' + data.userNumber + '</div>'+
-              '<div style="font-size:12px;color:var(--ms-muted)">' + (data.bio || 'No bio yet.') + '</div></div>'+
-            '</div>';
-          });
+        var data = doc.data();
+        r.classList.add('show');
+        r.innerHTML = '<div style="display:flex;align-items:center;gap:12px">'+
+          '<div style="width:40px;height:40px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ms-accent)">' + (data.displayName || data.username)[0].toUpperCase() + '</div>'+
+          '<div><div style="font-weight:600">@' + data.username + '</div>'+
+          '<div style="font-size:12px;color:var(--ms-muted);font-family:var(--ms-mono)">' + D + '/' + data.username + ' · #' + data.userNumber + '</div>'+
+          '<div style="font-size:12px;color:var(--ms-muted)">' + (data.bio || 'No bio yet.') + '</div></div>'+
+        '</div>';
       });
   }
 }
