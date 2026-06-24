@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -658,6 +658,7 @@ function renderUsernames() {
   });
 }
 
+// ===== FIXED CLAIM USERNAME =====
 function claimUsername() {
   var input = document.getElementById('claim-input');
   if (!input) return;
@@ -673,56 +674,50 @@ function claimUsername() {
   var handleRef = db.collection('handles').doc(username);
   var usernameRef = db.collection('usernames').doc(username);
   
-  db.runTransaction(function(transaction) {
-    var counterDoc, userDoc, handleDoc;
+  db.runTransaction(async function(transaction) {
+    // ---- ALL READS FIRST ----
+    const counterDoc = await transaction.get(counterRef);
+    const handleDoc = await transaction.get(handleRef);
+    const userDoc = await transaction.get(userRef);
     
-    return transaction.get(counterRef).then(function(doc) {
-      counterDoc = doc;
-      return transaction.get(handleRef);
-    }).then(function(doc) {
-      handleDoc = doc;
-      if (handleDoc.exists) {
-        throw new Error('Username "' + username + '" is already taken.');
-      }
-      return transaction.get(userRef);
-    }).then(function(doc) {
-      userDoc = doc;
-      if (!userDoc.exists) {
-        throw new Error('Your account could not be found.');
-      }
-      
-      var userData = userDoc.data();
-      var handles = userData.handles || [];
-      if (handles.length >= 15) {
-        throw new Error('You already have 15 handles (maximum).');
-      }
-      if (handles.includes(username)) {
-        throw new Error('You already own this username.');
-      }
-      
-      var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
-      var newNumber = current + 1;
-      
-      handles.push(username);
-      
-      var handleData = {
-        username: username,
-        ownerUid: USER_UID,
-        userNumber: newNumber,
-        displayName: userProfile.displayName || USERNAME,
-        bio: userProfile.bio || '',
-        avatarUrl: userProfile.avatarUrl || '',
-        accentColor: userProfile.accentColor || '#4f7cff',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      
-      transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
-      transaction.set(handleRef, handleData);
-      transaction.set(usernameRef, { uid: USER_UID });
-      transaction.update(userRef, { handles: handles });
-      
-      return newNumber;
-    });
+    // ---- VALIDATIONS ----
+    if (handleDoc.exists) {
+      throw new Error('Username "' + username + '" is already taken.');
+    }
+    if (!userDoc.exists) {
+      throw new Error('Your account could not be found.');
+    }
+    var userData = userDoc.data();
+    var handles = userData.handles || [];
+    if (handles.length >= 15) {
+      throw new Error('You already have 15 handles (maximum).');
+    }
+    if (handles.includes(username)) {
+      throw new Error('You already own this username.');
+    }
+    
+    var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+    var newNumber = current + 1;
+    handles.push(username);
+    
+    var handleData = {
+      username: username,
+      ownerUid: USER_UID,
+      userNumber: newNumber,
+      displayName: userProfile.displayName || USERNAME,
+      bio: userProfile.bio || '',
+      avatarUrl: userProfile.avatarUrl || '',
+      accentColor: userProfile.accentColor || '#4f7cff',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // ---- ALL WRITES LAST ----
+    transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
+    transaction.set(handleRef, handleData);
+    transaction.set(usernameRef, { uid: USER_UID });
+    transaction.update(userRef, { handles: handles });
+    
+    return newNumber;
   }).then(function(newNumber) {
     userHandles.push(username);
     showToast('Claimed @' + username + ' with #' + newNumber + ' ✅');
@@ -731,6 +726,7 @@ function claimUsername() {
     showToast('Error claiming username: ' + error.message);
   });
 }
+// =================================
 
 function releaseHandle(username) {
   if (username === USERNAME) {
