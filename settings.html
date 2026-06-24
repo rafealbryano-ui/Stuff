@@ -742,7 +742,7 @@ function releaseHandle(username) {
     return;
   }
 
-  if (!confirm('Release @' + username + '? This will renumber handles after it.')) return;
+  if (!confirm('Release @' + username + '? This will renumber all handles globally.')) return;
 
   var handleRef = db.collection('handles').doc(username);
   var userRef = db.collection('users').doc(USER_UID);
@@ -766,14 +766,15 @@ function releaseHandle(username) {
     batch.update(userRef, { handles: userHandles });
 
     batch.commit().then(function() {
-      return db.collection('handles').where('ownerUid', '==', USER_UID).get();
+      return db.collection('handles').where('userNumber', '>', releasedNumber).get();
     }).then(function(snapshot) {
       var toUpdate = [];
+      var userNumbersToUpdate = {};
       snapshot.forEach(function(doc) {
         var data = doc.data();
-        if (data.userNumber > releasedNumber) {
-          toUpdate.push({ ref: doc.ref, oldNum: data.userNumber });
-        }
+        var newNumber = data.userNumber - 1;
+        toUpdate.push({ ref: doc.ref, newNumber: newNumber, username: data.username, ownerUid: data.ownerUid });
+        userNumbersToUpdate[data.ownerUid] = true;
       });
       if (toUpdate.length === 0) {
         showToast('Released @' + username);
@@ -782,11 +783,29 @@ function releaseHandle(username) {
       }
       var updateBatch = db.batch();
       toUpdate.forEach(function(item) {
-        updateBatch.update(item.ref, { userNumber: item.oldNum - 1 });
+        updateBatch.update(item.ref, { userNumber: item.newNumber });
       });
       updateBatch.commit().then(function() {
-        showToast('Released @' + username + ' and renumbered handles.');
-        renderUsernames();
+        var userUpdatePromises = Object.keys(userNumbersToUpdate).map(function(uid) {
+          return db.collection('users').doc(uid).get().then(function(userDoc) {
+            if (userDoc.exists) {
+              var userData = userDoc.data();
+              var mainHandle = userData.handles ? userData.handles[0] : ''; // if the main handle was among the renumbered ones, update userNumber
+              // We'll just update the userNumber to the new number if it matches a handle that got renumbered.
+              // Actually easier: we can update all user documents to match the handle's userNumber for the main handle.
+              // But to keep it simple, we'll just update the userNumber field if it's greater than releasedNumber.
+              if (userData.userNumber > releasedNumber) {
+                var newUserNumber = userData.userNumber - 1;
+                return db.collection('users').doc(uid).update({ userNumber: newUserNumber });
+              }
+            }
+            return Promise.resolve();
+          });
+        });
+        return Promise.all(userUpdatePromises).then(function() {
+          showToast('Released @' + username + ' and renumbered all handles globally.');
+          renderUsernames();
+        });
       }).catch(function(error) {
         showToast('Error renumbering: ' + error.message);
       });
