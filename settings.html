@@ -659,9 +659,9 @@ function renderUsernames() {
 }
 
 function claimUsername() {
-  var v = document.getElementById('claim-input');
-  if (!v) return;
-  var username = v.value.trim().toLowerCase();
+  var input = document.getElementById('claim-input');
+  if (!input) return;
+  var username = input.value.trim().toLowerCase();
   
   if (!username || !/^[a-zA-Z0-9_]{3,24}$/.test(username)) {
     showToast('Username must be 3-24 characters (letters, numbers, underscores).');
@@ -674,48 +674,54 @@ function claimUsername() {
   var usernameRef = db.collection('usernames').doc(username);
   
   db.runTransaction(function(transaction) {
-    return transaction.get(counterRef).then(function(counterDoc) {
+    var counterDoc, userDoc, handleDoc;
+    
+    return transaction.get(counterRef).then(function(doc) {
+      counterDoc = doc;
+      return transaction.get(handleRef);
+    }).then(function(doc) {
+      handleDoc = doc;
+      if (handleDoc.exists) {
+        throw new Error('Username "' + username + '" is already taken.');
+      }
+      return transaction.get(userRef);
+    }).then(function(doc) {
+      userDoc = doc;
+      if (!userDoc.exists) {
+        throw new Error('Your account could not be found.');
+      }
+      
+      var userData = userDoc.data();
+      var handles = userData.handles || [];
+      if (handles.length >= 15) {
+        throw new Error('You already have 15 handles (maximum).');
+      }
+      if (handles.includes(username)) {
+        throw new Error('You already own this username.');
+      }
+      
       var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
       var newNumber = current + 1;
-      transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
       
-      return transaction.get(handleRef).then(function(handleDoc) {
-        if (handleDoc.exists) {
-          throw new Error('Username already taken.');
-        }
-        
-        return transaction.get(userRef).then(function(userDoc) {
-          if (!userDoc.exists) {
-            throw new Error('User document not found.');
-          }
-          var userData = userDoc.data();
-          var handles = userData.handles || [];
-          if (handles.length >= 15) {
-            throw new Error('You already have 15 handles (maximum).');
-          }
-          if (handles.includes(username)) {
-            throw new Error('You already own this username.');
-          }
-          
-          var handleData = {
-            username: username,
-            ownerUid: USER_UID,
-            userNumber: newNumber,
-            displayName: userProfile.displayName || USERNAME,
-            bio: userProfile.bio || '',
-            avatarUrl: userProfile.avatarUrl || '',
-            accentColor: userProfile.accentColor || '#4f7cff',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          };
-          transaction.set(handleRef, handleData);
-          transaction.set(usernameRef, { uid: USER_UID });
-          
-          handles.push(username);
-          transaction.update(userRef, { handles: handles });
-          
-          return newNumber;
-        });
-      });
+      handles.push(username);
+      
+      var handleData = {
+        username: username,
+        ownerUid: USER_UID,
+        userNumber: newNumber,
+        displayName: userProfile.displayName || USERNAME,
+        bio: userProfile.bio || '',
+        avatarUrl: userProfile.avatarUrl || '',
+        accentColor: userProfile.accentColor || '#4f7cff',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
+      transaction.set(handleRef, handleData);
+      transaction.set(usernameRef, { uid: USER_UID });
+      transaction.update(userRef, { handles: handles });
+      
+      return newNumber;
     });
   }).then(function(newNumber) {
     userHandles.push(username);
