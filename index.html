@@ -143,7 +143,7 @@ var animationStarted = false;
 var isRendering = false;
 var initialLoad = true;
 var snapshotUnsubscribe = null;
-var lastRenderTime = 0;
+var renderTimeout = null;
 
 function getStorage() {
   try {
@@ -210,11 +210,6 @@ function updateUserCount(count) {
 
 function renderMemberCards() {
   if (isRendering) return;
-  
-  var now = Date.now();
-  if (now - lastRenderTime < 500) return;
-  lastRenderTime = now;
-  
   isRendering = true;
   
   var track = document.getElementById('track');
@@ -255,20 +250,22 @@ function renderMemberCards() {
       }
     }
 
-    track.innerHTML = '';
-    track.style.justifyContent = 'flex-start';
-
     var allCards = users.concat(users);
 
+    var html = '';
     for (var i = 0; i < allCards.length; i++) {
       var user = allCards[i];
       var num = user.userNumber || (i % users.length) + 1;
-      var c = document.createElement('div');
-      c.className = 'member-card';
-      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + user.displayName + '</div><div class="member-handle">@' + user.username + '</div><div class="member-bio">' + user.bio + '</div>';
-      track.appendChild(c);
+      html += '<div class="member-card">';
+      html += '<div class="member-num">#' + num + '</div>';
+      html += '<div class="member-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>';
+      html += '<div class="member-name">' + user.displayName + '</div>';
+      html += '<div class="member-handle">@' + user.username + '</div>';
+      html += '<div class="member-bio">' + user.bio + '</div>';
+      html += '</div>';
     }
-
+    track.innerHTML = html;
+    track.style.justifyContent = 'flex-start';
     track.classList.remove('paused');
     
     var totalWidth = 0;
@@ -279,7 +276,6 @@ function renderMemberCards() {
     
     var trackWidth = totalWidth / 2;
     track.style.width = trackWidth + 'px';
-    
     track.style.transform = 'translateX(0)';
     
     if (!animationStarted) {
@@ -313,20 +309,22 @@ function renderMemberCards() {
       return;
     }
     
-    track.innerHTML = '';
-    track.style.justifyContent = 'flex-start';
-    
     var allCards = usernames.concat(usernames);
     
+    var html = '';
     for (var i = 0; i < allCards.length; i++) {
       var username = allCards[i];
       var num = (i % usernames.length) + 1;
-      var c = document.createElement('div');
-      c.className = 'member-card';
-      c.innerHTML = '<div class="member-num">#' + num + '</div><div class="member-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div class="member-name">' + username + '</div><div class="member-handle">@' + username + '</div><div class="member-bio">No bio yet.</div>';
-      track.appendChild(c);
+      html += '<div class="member-card">';
+      html += '<div class="member-num">#' + num + '</div>';
+      html += '<div class="member-avatar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>';
+      html += '<div class="member-name">' + username + '</div>';
+      html += '<div class="member-handle">@' + username + '</div>';
+      html += '<div class="member-bio">No bio yet.</div>';
+      html += '</div>';
     }
-    
+    track.innerHTML = html;
+    track.style.justifyContent = 'flex-start';
     track.classList.remove('paused');
     
     var totalWidth = 0;
@@ -337,7 +335,6 @@ function renderMemberCards() {
     
     var trackWidth = totalWidth / 2;
     track.style.width = trackWidth + 'px';
-    
     track.style.transform = 'translateX(0)';
     
     if (!animationStarted) {
@@ -359,6 +356,16 @@ function renderMemberCards() {
       document.getElementById('loadingOverlay').classList.add('hidden');
     }
   });
+}
+
+function debouncedRender() {
+  if (renderTimeout) {
+    clearTimeout(renderTimeout);
+  }
+  renderTimeout = setTimeout(function() {
+    renderTimeout = null;
+    renderMemberCards();
+  }, 300);
 }
 
 document.getElementById('claimBtn').addEventListener('click', function() {
@@ -474,6 +481,7 @@ drawParticles();
 
 updateNav();
 
+// Initial render - only once
 renderMemberCards();
 
 var claimed = sessionStorage.getItem('mailserver_claim');
@@ -494,18 +502,20 @@ auth.onAuthStateChanged(function(user) {
 
 window.addEventListener('storage', function(e) {
   if (e.key === 'mailserver_profile_updated') {
-    renderMemberCards();
+    debouncedRender();
   }
 });
 
+// Snapshot listener - only updates user count and triggers debounced render
 if (snapshotUnsubscribe) {
   snapshotUnsubscribe();
 }
 snapshotUnsubscribe = db.collection('users').onSnapshot(function(snapshot) {
   var count = snapshot.size;
   updateUserCount(count);
-  if (!isRendering) {
-    renderMemberCards();
+  // Only trigger render if not currently rendering and after initial load
+  if (!isRendering && !initialLoad) {
+    debouncedRender();
   }
 }, function(error) {
   console.error('Snapshot error:', error);
