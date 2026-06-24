@@ -586,16 +586,22 @@ function uploadAvatar(event) {
   var file = event.target.files[0];
   if (!file) return;
   
-  var btn = event.target;
-  btn.disabled = true;
+  var input = event.target;
   showToast('Uploading avatar...');
   
-  var storageRef = storage.ref('avatars/' + USER_UID + '/' + file.name);
+  var filePath = 'avatars/' + USER_UID + '/' + Date.now() + '_' + file.name;
+  var storageRef = storage.ref(filePath);
   var uploadTask = storageRef.put(file);
   
-  uploadTask.on('state_changed', null, function(error) {
+  uploadTask.on('state_changed', function(snapshot) {
+    var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+    if (progress % 10 === 0) {
+      showToast('Uploading... ' + Math.round(progress) + '%');
+    }
+  }, function(error) {
+    console.error('Upload error:', error);
     showToast('Upload failed: ' + error.message);
-    btn.disabled = false;
+    input.value = '';
   }, function() {
     uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
       db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
@@ -603,13 +609,16 @@ function uploadAvatar(event) {
           userProfile.avatarUrl = downloadURL;
           syncProfileToHandles();
           showToast('Avatar uploaded successfully! ✅');
-          btn.disabled = false;
+          input.value = '';
           renderTab('biopage');
         })
         .catch(function(error) {
-          showToast('Error saving avatar: ' + error.message);
-          btn.disabled = false;
+          showToast('Error saving avatar URL: ' + error.message);
+          input.value = '';
         });
+    }).catch(function(error) {
+      showToast('Error getting download URL: ' + error.message);
+      input.value = '';
     });
   });
 }
