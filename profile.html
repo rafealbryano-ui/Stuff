@@ -27,19 +27,22 @@
     .card-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid #1c1c1c}
     .footer-views{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
     .footer-brand{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
-    .back-link{color:#555;font-size:12px;text-decoration:none;border:1px solid #2a2a2a;padding:6px 16px;border-radius:20px;transition:border .15s}
+    .back-link{color:#555;font-size:12px;text-decoration:none;border:1px solid #2a2a2a;padding:6px 16px;border-radius:20px;transition:border .15s;margin-top:8px}
     .back-link:hover{border-color:#555}
     .error-msg{color:#888;font-size:14px;text-align:center;padding:40px 20px}
     .loading-spinner{width:30px;height:30px;border:3px solid #222;border-top-color:#5b8ef0;border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
     @keyframes spin{to{transform:rotate(360deg)}}
+    .header{width:100%;display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+    .header a{color:#555;font-size:13px;text-decoration:none;border:1px solid #2a2a2a;padding:6px 14px;border-radius:20px;transition:border .15s}
+    .header a:hover{border-color:#555}
     @media(max-width:500px){.card-top{padding:16px 12px 14px}.avatar-ring{width:80px;height:80px}.avatar-inner{width:64px;height:64px;font-size:22px}}
   </style>
 </head>
 <body>
 
 <div class="page" id="profilePage">
-  <div class="loading-spinner" id="loadingSpinner"></div>
   <div id="content" style="display:none;width:100%"></div>
+  <div class="loading-spinner" id="loadingSpinner"></div>
 </div>
 
 <script>
@@ -57,7 +60,9 @@
 
   var D = 'mailserver.life';
 
-  function getUsernameFromPath() {
+  function getUsernameFromURL() {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('u')) return params.get('u');
     var path = window.location.pathname;
     var parts = path.split('/').filter(function(p){ return p.length > 0; });
     var last = parts[parts.length - 1] || '';
@@ -67,7 +72,7 @@
     return last;
   }
 
-  var username = getUsernameFromPath();
+  var username = getUsernameFromURL();
 
   function showError(msg) {
     document.getElementById('loadingSpinner').style.display = 'none';
@@ -96,19 +101,19 @@
     }
 
     var tagsHtml = '';
-    aliases.forEach(function(a) {
-      tagsHtml += '<span class="tag"><a href="/user/' + a.username + '">@' + a.username + '</a></span>';
-    });
-    if (tagsHtml === '') {
-      tagsHtml = '<span class="tag">No aliases</span>';
-    }
-
-    var mainHandle = '';
-    if (handleData.primaryHandle && handleData.primaryHandle !== username) {
-      mainHandle = handleData.primaryHandle;
+    if (aliases.length > 0) {
+      aliases.forEach(function(a) {
+        tagsHtml += '<span class="tag"><a href="#" onclick="navigateToUser(\'' + a.username + '\');return false;">@' + a.username + '</a></span>';
+      });
+    } else {
+      tagsHtml = '<span class="tag" style="color:#555;border-color:#2a2a2a">No aliases</span>';
     }
 
     var html = '';
+    html += '<div class="header">';
+    html += '  <a href="#" onclick="navigateHome();return false;">← Home</a>';
+    html += '  <span style="color:#333;font-size:11px">' + D + '</span>';
+    html += '</div>';
     html += '<div class="card">';
     html += '  <div class="card-top">';
     html += '    <div class="card-badge">#' + userNumber + ' · ' + D + '</div>';
@@ -116,9 +121,6 @@
     html += '      <div class="avatar-inner">' + avatarHtml + '</div>';
     html += '    </div>';
     html += '    <div class="handle">@' + username + '</div>';
-    if (mainHandle) {
-      html += '    <div style="font-size:11px;color:#555;margin-bottom:6px">(main: @' + mainHandle + ')</div>';
-    }
     html += '    <div class="bio">' + bio + '</div>';
     html += '    <div class="tags">' + tagsHtml + '</div>';
     html += '  </div>';
@@ -128,24 +130,36 @@
     html += '  </div>';
     html += '</div>';
 
-    html += '<a href="/" class="back-link">← Back to home</a>';
-
     document.getElementById('loadingSpinner').style.display = 'none';
     var content = document.getElementById('content');
     content.style.display = 'block';
     content.innerHTML = html;
+    document.title = '@' + username + ' — mailserver.life';
+    window.history.pushState({ username: username }, '', '/user/' + username);
   }
 
-  function loadProfile() {
-    if (!username) {
+  function navigateToUser(username) {
+    window.history.pushState({ username: username }, '', '/user/' + username);
+    loadProfile(username);
+  }
+
+  function navigateHome() {
+    window.location.href = '/';
+  }
+
+  function loadProfile(targetUsername) {
+    var usernameToLoad = targetUsername || username;
+    if (!usernameToLoad) {
       showError('No username specified.');
       return;
     }
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('content').style.display = 'none';
 
-    db.collection('handles').doc(username).get()
+    db.collection('handles').doc(usernameToLoad).get()
       .then(function(doc) {
         if (!doc.exists) {
-          showError('User @' + username + ' not found.');
+          showError('User @' + usernameToLoad + ' not found.');
           return;
         }
         var handleData = doc.data();
@@ -166,6 +180,15 @@
         showError('Error loading profile: ' + error.message);
       });
   }
+
+  window.onpopstate = function(event) {
+    if (event.state && event.state.username) {
+      loadProfile(event.state.username);
+    } else {
+      var u = getUsernameFromURL();
+      if (u) loadProfile(u);
+    }
+  };
 
   loadProfile();
 </script>
