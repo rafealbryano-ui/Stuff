@@ -364,6 +364,19 @@ function deleteAccount() {
       return db.collection('users').doc(userUid).delete();
     })
     .then(function() {
+      return db.collection('handles').get().then(function(snapshot) {
+        var maxNumber = 0;
+        snapshot.forEach(function(doc) {
+          var num = doc.data().userNumber || 0;
+          if (num > maxNumber) maxNumber = num;
+        });
+        return maxNumber;
+      });
+    })
+    .then(function(maxNumber) {
+      return db.collection('meta').doc('counter').set({ currentUserNumber: maxNumber }, { merge: true });
+    })
+    .then(function() {
       return user.delete();
     })
     .then(function() {
