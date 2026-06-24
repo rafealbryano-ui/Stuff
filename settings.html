@@ -1,4 +1,4 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -658,7 +658,6 @@ function renderUsernames() {
   });
 }
 
-// ===== FIXED CLAIM USERNAME =====
 function claimUsername() {
   var input = document.getElementById('claim-input');
   if (!input) return;
@@ -675,12 +674,10 @@ function claimUsername() {
   var usernameRef = db.collection('usernames').doc(username);
   
   db.runTransaction(async function(transaction) {
-    // ---- ALL READS FIRST ----
     const counterDoc = await transaction.get(counterRef);
     const handleDoc = await transaction.get(handleRef);
     const userDoc = await transaction.get(userRef);
     
-    // ---- VALIDATIONS ----
     if (handleDoc.exists) {
       throw new Error('Username "' + username + '" is already taken.');
     }
@@ -711,7 +708,6 @@ function claimUsername() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    // ---- ALL WRITES LAST ----
     transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
     transaction.set(handleRef, handleData);
     transaction.set(usernameRef, { uid: USER_UID });
@@ -726,7 +722,6 @@ function claimUsername() {
     showToast('Error claiming username: ' + error.message);
   });
 }
-// =================================
 
 function releaseHandle(username) {
   if (username === USERNAME) {
