@@ -100,7 +100,7 @@
     .bio-links{display:flex;flex-direction:column;gap:8px;margin-top:20px;max-width:280px;margin-left:auto;margin-right:auto}
     .bio-link-btn{background:#1f1f1f;border:1px solid var(--ms-border);border-radius:8px;padding:10px;font-size:13px;color:var(--ms-text);cursor:pointer;transition:background .15s}
     .bio-link-btn:hover{background:#252525}
-    .profile-upload-btn{position:relative;overflow:hidden;display:inline-block}
+    .profile-upload-btn{position:relative;display:inline-block;cursor:pointer}
     .profile-upload-btn input[type="file"]{position:absolute;left:0;top:0;opacity:0;width:100%;height:100%;cursor:pointer}
     .bio-avatar-img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--ms-accent)}
     .session-card{background:#141414;border:1px solid var(--ms-border);border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
@@ -111,6 +111,10 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     .claim-loading{display:none;align-items:center;gap:8px;color:var(--ms-muted);font-size:13px}
     .claim-loading.show{display:inline-flex}
+    .avatar-wrapper{position:relative;display:inline-block}
+    .avatar-overlay{position:absolute;bottom:0;right:0;background:var(--ms-accent);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid var(--ms-bg);cursor:pointer;transition:background .15s}
+    .avatar-overlay:hover{background:#3d6aee}
+    .avatar-overlay i{font-size:14px;color:#fff}
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
@@ -483,26 +487,32 @@ function generateAlias() {
     });
 }
 
-function renderBio(){
+function renderBio() {
   var avatarUrl = userProfile.avatarUrl || '';
   var displayName = userProfile.displayName || USERNAME;
   var bio = userProfile.bio || '';
   var accentColor = userProfile.accentColor || '#4f7cff';
   var socials = userProfile.socials || {};
+  var avatarInitial = displayName ? displayName[0].toUpperCase() : USERNAME[0].toUpperCase();
   
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
     '<div>'+
     '<div class="card">'+
       '<div class="card-title">Public Profile</div>'+
       '<div class="card-sub">Shown at ' + D + '/' + USERNAME + ' and ' + D + '/id/' + USER_ID + '.</div>'+
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">'+
-        '<div style="position:relative">'+
-          (avatarUrl ? '<img src="' + avatarUrl + '" class="bio-avatar-img">' : 
-            '<div style="width:64px;height:64px;border-radius:50%;background:var(--ms-accent-dim);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:var(--ms-accent)">' + USERNAME[0].toUpperCase() + '</div>') +
-          '<div class="profile-upload-btn" style="position:absolute;bottom:-4px;right:-4px;background:var(--ms-accent);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--ms-bg)">'+
-            '<i class="ti ti-camera" style="font-size:12px;color:#fff"></i>'+
-            '<input type="file" accept="image/*" onchange="uploadAvatar(event)">'+
+      '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding:12px 0;border-bottom:1px solid var(--ms-border)">'+
+        '<div class="avatar-wrapper">'+
+          (avatarUrl ? '<img src="' + avatarUrl + '" class="bio-avatar-img" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + '">' : 
+            '<div style="width:64px;height:64px;border-radius:50%;background:' + accentColor + '20;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:24px;color:' + accentColor + ';border:2px solid ' + accentColor + '">' + avatarInitial + '</div>') +
+          '<div class="avatar-overlay" onclick="document.getElementById(\'avatarInput\').click()">'+
+            '<i class="ti ti-camera" style="font-size:14px;color:#fff"></i>'+
           '</div>'+
+          '<input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="uploadAvatar(event)">'+
+        '</div>'+
+        '<div>'+
+          '<div style="font-size:16px;font-weight:600;color:var(--ms-text)">' + displayName + '</div>'+
+          '<div style="font-size:13px;color:var(--ms-muted)">@' + USERNAME + ' · #' + USER_ID + '</div>'+
+          '<div style="font-size:12px;color:var(--ms-muted);margin-top:4px">Click the camera icon to change your profile picture</div>'+
         '</div>'+
       '</div>'+
       '<label>Display Name</label><input type="text" id="displayNameInput" value="' + displayName + '" placeholder="Display name">'+
@@ -576,19 +586,29 @@ function uploadAvatar(event) {
   var file = event.target.files[0];
   if (!file) return;
   
+  var btn = event.target;
+  btn.disabled = true;
+  showToast('Uploading avatar...');
+  
   var storageRef = storage.ref('avatars/' + USER_UID + '/' + file.name);
   var uploadTask = storageRef.put(file);
   
   uploadTask.on('state_changed', null, function(error) {
     showToast('Upload failed: ' + error.message);
+    btn.disabled = false;
   }, function() {
     uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
       db.collection('users').doc(USER_UID).update({ avatarUrl: downloadURL })
         .then(function() {
           userProfile.avatarUrl = downloadURL;
           syncProfileToHandles();
-          showToast('Avatar uploaded! ✅');
+          showToast('Avatar uploaded successfully! ✅');
+          btn.disabled = false;
           renderTab('biopage');
+        })
+        .catch(function(error) {
+          showToast('Error saving avatar: ' + error.message);
+          btn.disabled = false;
         });
     });
   });
