@@ -644,7 +644,17 @@ function renderUsernames() {
     attachHandlers();
   }).catch(function(err) {
     console.error('Error loading handles:', err);
-    container.innerHTML = '<div style="color:var(--ms-muted)">Error loading handles. Please try again later.</div>';
+    if (userHandles && userHandles.length > 0) {
+      var fallbackHtml = '<div class="card"><div class="card-title">Your Handles</div><div class="card-sub">Unable to fetch full handle data, showing your saved list.</div>';
+      userHandles.forEach(function(h) {
+        fallbackHtml += '<div class="handle-row"><div><span class="handle-name">' + D + '/' + h + '</span>' + (h === USERNAME ? '<span class="badge">LOGIN</span>' : '<span class="badge">ALIAS</span>') + '</div></div>';
+      });
+      fallbackHtml += '</div>';
+      container.innerHTML = fallbackHtml;
+      showToast('Could not load handles from server, showing cached list.');
+    } else {
+      container.innerHTML = '<div style="color:var(--ms-muted)">Error loading handles. Please refresh.</div>';
+    }
   });
 }
 
