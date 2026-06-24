@@ -122,17 +122,6 @@
       }
     }
 
-    function getNextUserNumber() {
-      return db.collection('users').orderBy('userNumber', 'desc').limit(1).get()
-        .then(function(snapshot) {
-          var lastNum = 0;
-          snapshot.forEach(function(doc) {
-            lastNum = doc.data().userNumber || 0;
-          });
-          return lastNum + 1;
-        });
-    }
-
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
     if (claimed) {
@@ -148,6 +137,9 @@
       var error = document.getElementById('signupError');
       var success = document.getElementById('signupSuccess');
       var btn = document.getElementById('signupBtn');
+
+      error.style.display = 'none';
+      success.style.display = 'none';
 
       if (!username || !password || !confirm) {
         error.textContent = 'Please fill in all fields.';
@@ -173,14 +165,13 @@
         return;
       }
 
-      error.style.display = 'none';
       success.style.display = 'block';
       success.textContent = 'Creating your email...';
       btn.disabled = true;
 
       var email = username + '@mailserver.life';
 
-      db.collection('usernames').doc(username).get()
+      db.collection('handles').doc(username).get()
         .then(function(snapshot) {
           if (snapshot.exists) {
             throw new Error('Username already taken');
@@ -191,37 +182,60 @@
           if (methods && methods.length > 0) {
             throw new Error('This username was previously registered. Please choose another.');
           }
-          return getNextUserNumber();
+          var counterRef = db.collection('meta').doc('counter');
+          return db.runTransaction(function(transaction) {
+            return transaction.get(counterRef).then(function(counterDoc) {
+              var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+              var newNumber = current + 1;
+              transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
+              return newNumber;
+            });
+          });
         })
         .then(function(userNumber) {
           return auth.createUserWithEmailAndPassword(email, password)
             .then(function(userCredential) {
               var user = userCredential.user;
-              return user.updateProfile({
-                displayName: username
-              }).then(function() {
-                return db.collection('users').doc(user.uid).set({
-                  username: username,
-                  email: email,
-                  displayName: username,
-                  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                  handles: [username],
-                  primaryHandle: username,
-                  bio: 'No bio yet.',
-                  userNumber: userNumber
+              return user.updateProfile({ displayName: username })
+                .then(function() {
+                  var userData = {
+                    username: username,
+                    email: email,
+                    displayName: username,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    handles: [username],
+                    primaryHandle: username,
+                    bio: 'No bio yet.',
+                    userNumber: userNumber
+                  };
+                  return db.collection('users').doc(user.uid).set(userData);
+                })
+                .then(function() {
+                  var handleData = {
+                    username: username,
+                    ownerUid: user.uid,
+                    userNumber: userNumber,
+                    displayName: username,
+                    bio: 'No bio yet.',
+                    avatarUrl: '',
+                    accentColor: '#4f7cff',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                  };
+                  return db.collection('handles').doc(username).set(handleData);
+                })
+                .then(function() {
+                  return db.collection('usernames').doc(username).set({
+                    uid: user.uid,
+                    claimedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    userNumber: userNumber
+                  });
+                })
+                .then(function() {
+                  saveCredentials(username, password);
+                  sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
+                  sessionStorage.removeItem('mailserver_claim');
+                  window.location.href = '/';
                 });
-              }).then(function() {
-                return db.collection('usernames').doc(username).set({
-                  uid: user.uid,
-                  claimedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                  userNumber: userNumber
-                });
-              }).then(function() {
-                saveCredentials(username, password);
-                sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-                sessionStorage.removeItem('mailserver_claim');
-                window.location.href = '/dashboard.html';
-              });
             });
         })
         .catch(function(error) {
@@ -232,6 +246,8 @@
             error.textContent = 'This username is already registered. Please sign in.';
           } else if (error.message === 'This username was previously registered. Please choose another.') {
             error.textContent = 'This username was previously used. Please choose another.';
+          } else if (error.message === 'Username already taken') {
+            error.textContent = 'This username is already taken. Please choose another.';
           } else if (error.code === 'auth/invalid-email') {
             error.textContent = 'Invalid username. Use only letters, numbers, and underscores.';
           } else if (error.code === 'auth/weak-password') {
