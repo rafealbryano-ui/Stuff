@@ -685,7 +685,7 @@ function claimUsername() {
         return transaction.get(counterRef).then(function(doc) {
           var current = doc.exists ? doc.data().currentUserNumber : 0;
           var newNumber = current + 1;
-          transaction.update(counterRef, { currentUserNumber: newNumber });
+          transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
           return newNumber;
         });
       }).then(function(newNumber) {
@@ -705,6 +705,8 @@ function claimUsername() {
         return db.collection('users').doc(USER_UID).update({ handles: updatedHandles });
       }).then(function() {
         userHandles.push(username);
+        return db.collection('usernames').doc(username).set({ uid: USER_UID });
+      }).then(function() {
         showToast('Claimed @' + username + ' ✅');
         renderUsernames();
       }).catch(function(error) {
