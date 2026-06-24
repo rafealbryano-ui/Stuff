@@ -283,7 +283,7 @@ function renderTab(tab) {
   if (tab === 'account') container.innerHTML = renderAccount();
   else if (tab === 'email') container.innerHTML = renderEmail();
   else if (tab === 'biopage') container.innerHTML = renderBio();
-  else if (tab === 'usernames') container.innerHTML = renderUsernames();
+  else if (tab === 'usernames') renderUsernames();
   else if (tab === 'lookup') container.innerHTML = renderLookup();
   else if (tab === 'sessions') container.innerHTML = renderSessions();
   attachHandlers();
@@ -589,10 +589,13 @@ function renderUsernames() {
   var container = document.getElementById('settingsContent');
   if (!container) return;
   
-  db.collection('handles').where('ownerUid', '==', USER_UID).orderBy('userNumber', 'asc').get().then(function(snapshot) {
+  db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(snapshot) {
     var handles = [];
     snapshot.forEach(function(doc) {
       handles.push(doc.data());
+    });
+    handles.sort(function(a, b) {
+      return (a.userNumber || 0) - (b.userNumber || 0);
     });
     
     var handleRows = handles.map(function(h) {
@@ -641,7 +644,7 @@ function renderUsernames() {
     attachHandlers();
   }).catch(function(err) {
     console.error('Error loading handles:', err);
-    container.innerHTML = '<div style="color:var(--ms-muted)">Error loading handles.</div>';
+    container.innerHTML = '<div style="color:var(--ms-muted)">Error loading handles. Please try again later.</div>';
   });
 }
 
@@ -655,20 +658,18 @@ function claimUsername() {
     return;
   }
   
-  db.collection('usernames').doc(username).get().then(function(snapshot) {
+  db.collection('handles').doc(username).get().then(function(snapshot) {
     if (snapshot.exists) {
       showToast('Username "' + username + '" is already taken.');
       return;
     }
     
-    // Check total handles count
     db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(handleSnap) {
       if (handleSnap.size >= 15) {
         showToast('You already have 15 handles (maximum).');
         return;
       }
       
-      // Get next user number
       var counterRef = db.collection('meta').doc('counter');
       db.runTransaction(function(transaction) {
         return transaction.get(counterRef).then(function(doc) {
@@ -678,7 +679,6 @@ function claimUsername() {
           return newNumber;
         });
       }).then(function(newNumber) {
-        // Create handle document
         var handleData = {
           username: username,
           ownerUid: USER_UID,
@@ -691,13 +691,12 @@ function claimUsername() {
         };
         return db.collection('handles').doc(username).set(handleData);
       }).then(function() {
-        // Add to user's handles array
         var updatedHandles = userHandles.concat([username]);
         return db.collection('users').doc(USER_UID).update({ handles: updatedHandles });
       }).then(function() {
         userHandles.push(username);
-        showToast('Claimed @' + username + ' with #' + (userProfile.userNumber ? '??' : '') + '! ✅');
-        renderTab('usernames');
+        showToast('Claimed @' + username + ' ✅');
+        renderUsernames();
       }).catch(function(error) {
         showToast('Error claiming username: ' + error.message);
       });
@@ -715,7 +714,6 @@ function releaseHandle(username) {
   
   if (!confirm('Release @' + username + '? It will become available for others to claim.')) return;
   
-  // Remove from user's handles array
   var idx = userHandles.indexOf(username);
   if (idx > -1) {
     userHandles.splice(idx, 1);
@@ -728,7 +726,7 @@ function releaseHandle(username) {
   
   batch.commit().then(function() {
     showToast('Released @' + username);
-    renderTab('usernames');
+    renderUsernames();
   }).catch(function(error) {
     showToast('Error releasing handle: ' + error.message);
   });
