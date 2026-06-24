@@ -364,23 +364,59 @@ function deleteAccount() {
       return db.collection('users').doc(userUid).delete();
     })
     .then(function() {
-      return db.collection('handles').get().then(function(snapshot) {
-        var maxNumber = 0;
-        snapshot.forEach(function(doc) {
-          var num = doc.data().userNumber || 0;
-          if (num > maxNumber) maxNumber = num;
-        });
-        return maxNumber;
-      });
+      return db.collection('handles').orderBy('userNumber', 'asc').get();
     })
-    .then(function(maxNumber) {
-      return db.collection('meta').doc('counter').set({ currentUserNumber: maxNumber }, { merge: true });
+    .then(function(snapshot) {
+      var toUpdate = [];
+      var newNumber = 1;
+      var userUpdates = {};
+      snapshot.forEach(function(doc) {
+        var data = doc.data();
+        var oldNum = data.userNumber;
+        if (oldNum !== newNumber) {
+          toUpdate.push({ ref: doc.ref, newNum: newNumber, oldNum: oldNum, ownerUid: data.ownerUid });
+          userUpdates[data.ownerUid] = true;
+        }
+        newNumber++;
+      });
+      var maxNew = newNumber - 1;
+      if (toUpdate.length === 0) {
+        return db.collection('meta').doc('counter').set({ currentUserNumber: maxNew }, { merge: true });
+      }
+      var updateBatch = db.batch();
+      toUpdate.forEach(function(item) {
+        updateBatch.update(item.ref, { userNumber: item.newNum });
+      });
+      return updateBatch.commit().then(function() {
+        var userUpdatePromises = Object.keys(userUpdates).map(function(uid) {
+          return db.collection('users').doc(uid).get().then(function(doc) {
+            if (doc.exists) {
+              var userData = doc.data();
+              var mainUsername = userData.username;
+              return db.collection('handles').where('ownerUid', '==', uid).where('username', '==', mainUsername).get().then(function(handleSnap) {
+                var newMainNum = 0;
+                handleSnap.forEach(function(hDoc) {
+                  newMainNum = hDoc.data().userNumber;
+                });
+                if (newMainNum > 0 && newMainNum !== userData.userNumber) {
+                  return db.collection('users').doc(uid).update({ userNumber: newMainNum });
+                }
+                return Promise.resolve();
+              });
+            }
+            return Promise.resolve();
+          });
+        });
+        return Promise.all(userUpdatePromises).then(function() {
+          return db.collection('meta').doc('counter').set({ currentUserNumber: maxNew }, { merge: true });
+        });
+      });
     })
     .then(function() {
       return user.delete();
     })
     .then(function() {
-      showToast('Account and all handles deleted successfully.');
+      showToast('Account and all handles deleted successfully. All remaining handles renumbered.');
       sessionStorage.removeItem('mailserver_session');
       setTimeout(function() {
         window.location.href = '/';
