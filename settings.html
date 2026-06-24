@@ -247,7 +247,7 @@ function ensureMainHandleExists() {
       var data = {
         username: USERNAME,
         ownerUid: USER_UID,
-        userNumber: 1,
+        userNumber: USER_ID,
         displayName: userProfile.displayName || USERNAME,
         bio: userProfile.bio || '',
         avatarUrl: userProfile.avatarUrl || '',
@@ -612,11 +612,12 @@ function renderUsernames() {
     }).join('');
 
     var count = handles.length;
+    var aliasCount = handles.filter(function(h) { return h.username !== USERNAME; }).length;
     var maxHandles = 15;
     
     var html = '<div class="card">'+
       '<div class="card-title">Claim a Username</div>'+
-      '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage with its own user number. You own ' + count + ' of ' + maxHandles + '.</div>'+
+      '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage with its own global user number. You own ' + aliasCount + ' of ' + (maxHandles - 1) + '.</div>'+
       '<div style="display:flex;gap:8px;margin-top:4px">'+
         '<div style="display:flex;align-items:center;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden;flex:1">'+
           '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
@@ -624,7 +625,7 @@ function renderUsernames() {
         '</div>'+
         '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
       '</div>'+
-      '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max 15 handles</div>'+
+      '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max ' + (maxHandles - 1) + ' aliases</div>'+
     '</div>'+
     '<div class="card">'+
       '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
@@ -671,10 +672,12 @@ function claimUsername() {
   var userRef = db.collection('users').doc(USER_UID);
   var handleRef = db.collection('handles').doc(username);
   var usernameRef = db.collection('usernames').doc(username);
+  var counterRef = db.collection('meta').doc('counter');
   
   db.runTransaction(async function(transaction) {
     const handleDoc = await transaction.get(handleRef);
     const userDoc = await transaction.get(userRef);
+    const counterDoc = await transaction.get(counterRef);
     
     if (handleDoc.exists) {
       throw new Error('Username "' + username + '" is already taken.');
@@ -684,20 +687,22 @@ function claimUsername() {
     }
     var userData = userDoc.data();
     var handles = userData.handles || [];
-    if (handles.length >= 15) {
-      throw new Error('You already have 15 handles (maximum).');
+    var aliasCount = handles.filter(function(h) { return h !== USERNAME; }).length;
+    if (aliasCount >= 14) {
+      throw new Error('You already have 14 aliases (maximum).');
     }
     if (handles.includes(username)) {
       throw new Error('You already own this username.');
     }
     
-    var nextNumber = (userData.handleCounter || 0) + 1;
+    var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+    var newNumber = current + 1;
     handles.push(username);
     
     var handleData = {
       username: username,
       ownerUid: USER_UID,
-      userNumber: nextNumber,
+      userNumber: newNumber,
       displayName: userProfile.displayName || USERNAME,
       bio: userProfile.bio || '',
       avatarUrl: userProfile.avatarUrl || '',
@@ -705,11 +710,12 @@ function claimUsername() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
+    transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
     transaction.set(handleRef, handleData);
     transaction.set(usernameRef, { uid: USER_UID });
-    transaction.update(userRef, { handles: handles, handleCounter: nextNumber });
+    transaction.update(userRef, { handles: handles });
     
-    return nextNumber;
+    return newNumber;
   }).then(function(newNumber) {
     userHandles.push(username);
     showToast('Claimed @' + username + ' with #' + newNumber + ' ✅');
@@ -776,7 +782,7 @@ function doLookup(){
   
   if (query.startsWith('#')) {
     var id = parseInt(query.replace('#', ''));
-    db.collection('handles').where('userNumber', '==', id).where('ownerUid', '==', USER_UID).get()
+    db.collection('handles').where('userNumber', '==', id).get()
       .then(function(snapshot) {
         if (snapshot.empty) {
           r.classList.add('show');
