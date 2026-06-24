@@ -250,7 +250,13 @@ function renderMemberCards() {
       }
     }
 
-    var allCards = users.concat(users);
+    // Determine how many copies to make so the stream looks continuous
+    // At least 10 copies, or enough to fill the screen twice
+    var clonesNeeded = Math.max(10, Math.ceil(20 / users.length));
+    var allCards = [];
+    for (var c = 0; c < clonesNeeded; c++) {
+      allCards = allCards.concat(users);
+    }
 
     var html = '';
     for (var i = 0; i < allCards.length; i++) {
@@ -274,6 +280,7 @@ function renderMemberCards() {
       totalWidth += card.offsetWidth + 10;
     });
     
+    // Set track width to half of total so animation moves by half
     var trackWidth = totalWidth / 2;
     track.style.width = trackWidth + 'px';
     track.style.transform = 'translateX(0)';
@@ -281,11 +288,11 @@ function renderMemberCards() {
     if (!animationStarted) {
       track.style.animation = 'none';
       track.offsetHeight;
-      var duration = Math.max(users.length * 5 + 20, 30);
+      var duration = Math.max(users.length * 3 + 15, 30);
       track.style.animation = 'marqueeScroll ' + duration + 's linear infinite';
       animationStarted = true;
     } else {
-      var duration = Math.max(users.length * 5 + 20, 30);
+      var duration = Math.max(users.length * 3 + 15, 30);
       track.style.animation = 'marqueeScroll ' + duration + 's linear infinite';
     }
     
@@ -309,7 +316,11 @@ function renderMemberCards() {
       return;
     }
     
-    var allCards = usernames.concat(usernames);
+    var clonesNeeded = Math.max(10, Math.ceil(20 / usernames.length));
+    var allCards = [];
+    for (var c = 0; c < clonesNeeded; c++) {
+      allCards = allCards.concat(usernames);
+    }
     
     var html = '';
     for (var i = 0; i < allCards.length; i++) {
@@ -340,11 +351,11 @@ function renderMemberCards() {
     if (!animationStarted) {
       track.style.animation = 'none';
       track.offsetHeight;
-      var duration = Math.max(usernames.length * 5 + 20, 30);
+      var duration = Math.max(usernames.length * 3 + 15, 30);
       track.style.animation = 'marqueeScroll ' + duration + 's linear infinite';
       animationStarted = true;
     } else {
-      var duration = Math.max(usernames.length * 5 + 20, 30);
+      var duration = Math.max(usernames.length * 3 + 15, 30);
       track.style.animation = 'marqueeScroll ' + duration + 's linear infinite';
     }
     
@@ -481,7 +492,6 @@ drawParticles();
 
 updateNav();
 
-// Initial render - only once
 renderMemberCards();
 
 var claimed = sessionStorage.getItem('mailserver_claim');
@@ -506,14 +516,12 @@ window.addEventListener('storage', function(e) {
   }
 });
 
-// Snapshot listener - only updates user count and triggers debounced render
 if (snapshotUnsubscribe) {
   snapshotUnsubscribe();
 }
 snapshotUnsubscribe = db.collection('users').onSnapshot(function(snapshot) {
   var count = snapshot.size;
   updateUserCount(count);
-  // Only trigger render if not currently rendering and after initial load
   if (!isRendering && !initialLoad) {
     debouncedRender();
   }
