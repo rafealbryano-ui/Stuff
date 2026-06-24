@@ -124,6 +124,26 @@
       }
     }
 
+    function getNextAvailableNumber() {
+      return db.collection('handles').get().then(function(snapshot) {
+        var usedNumbers = [];
+        snapshot.forEach(function(doc) {
+          var num = doc.data().userNumber;
+          if (num) usedNumbers.push(num);
+        });
+        usedNumbers.sort(function(a, b) { return a - b; });
+        var next = 1;
+        for (var i = 0; i < usedNumbers.length; i++) {
+          if (usedNumbers[i] === next) {
+            next++;
+          } else if (usedNumbers[i] > next) {
+            break;
+          }
+        }
+        return next;
+      });
+    }
+
     var claimed = sessionStorage.getItem('mailserver_claim');
     var usernameInput = document.getElementById('username');
     if (claimed) {
@@ -172,7 +192,6 @@
       btn.disabled = true;
 
       var email = username + '@mailserver.life';
-      var counterRef = db.collection('meta').doc('counter');
 
       db.collection('handles').doc(username).get()
         .then(function(snapshot) {
@@ -185,14 +204,7 @@
           if (methods && methods.length > 0) {
             throw new Error('This username was previously registered. Please choose another.');
           }
-          return db.runTransaction(function(transaction) {
-            return transaction.get(counterRef).then(function(counterDoc) {
-              var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
-              var nextNumber = current + 1;
-              transaction.set(counterRef, { currentUserNumber: nextNumber }, { merge: true });
-              return nextNumber;
-            });
-          });
+          return getNextAvailableNumber();
         })
         .then(function(userNumber) {
           return auth.createUserWithEmailAndPassword(email, password)
