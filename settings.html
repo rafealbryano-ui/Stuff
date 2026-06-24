@@ -668,53 +668,61 @@ function claimUsername() {
     return;
   }
   
-  db.collection('handles').doc(username).get().then(function(snapshot) {
-    if (snapshot.exists) {
-      showToast('Username "' + username + '" is already taken.');
-      return;
-    }
-    
-    db.collection('handles').where('ownerUid', '==', USER_UID).get().then(function(handleSnap) {
-      if (handleSnap.size >= 15) {
-        showToast('You already have 15 handles (maximum).');
-        return;
-      }
+  var counterRef = db.collection('meta').doc('counter');
+  var userRef = db.collection('users').doc(USER_UID);
+  var handleRef = db.collection('handles').doc(username);
+  var usernameRef = db.collection('usernames').doc(username);
+  
+  db.runTransaction(function(transaction) {
+    return transaction.get(counterRef).then(function(counterDoc) {
+      var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
+      var newNumber = current + 1;
+      transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
       
-      var counterRef = db.collection('meta').doc('counter');
-      db.runTransaction(function(transaction) {
-        return transaction.get(counterRef).then(function(doc) {
-          var current = doc.exists ? doc.data().currentUserNumber : 0;
-          var newNumber = current + 1;
-          transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
+      return transaction.get(handleRef).then(function(handleDoc) {
+        if (handleDoc.exists) {
+          throw new Error('Username already taken.');
+        }
+        
+        return transaction.get(userRef).then(function(userDoc) {
+          if (!userDoc.exists) {
+            throw new Error('User document not found.');
+          }
+          var userData = userDoc.data();
+          var handles = userData.handles || [];
+          if (handles.length >= 15) {
+            throw new Error('You already have 15 handles (maximum).');
+          }
+          if (handles.includes(username)) {
+            throw new Error('You already own this username.');
+          }
+          
+          var handleData = {
+            username: username,
+            ownerUid: USER_UID,
+            userNumber: newNumber,
+            displayName: userProfile.displayName || USERNAME,
+            bio: userProfile.bio || '',
+            avatarUrl: userProfile.avatarUrl || '',
+            accentColor: userProfile.accentColor || '#4f7cff',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          transaction.set(handleRef, handleData);
+          transaction.set(usernameRef, { uid: USER_UID });
+          
+          handles.push(username);
+          transaction.update(userRef, { handles: handles });
+          
           return newNumber;
         });
-      }).then(function(newNumber) {
-        var handleData = {
-          username: username,
-          ownerUid: USER_UID,
-          userNumber: newNumber,
-          displayName: userProfile.displayName || USERNAME,
-          bio: userProfile.bio || '',
-          avatarUrl: userProfile.avatarUrl || '',
-          accentColor: userProfile.accentColor || '#4f7cff',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        return db.collection('handles').doc(username).set(handleData);
-      }).then(function() {
-        var updatedHandles = userHandles.concat([username]);
-        return db.collection('users').doc(USER_UID).update({ handles: updatedHandles });
-      }).then(function() {
-        userHandles.push(username);
-        return db.collection('usernames').doc(username).set({ uid: USER_UID });
-      }).then(function() {
-        showToast('Claimed @' + username + ' ✅');
-        renderUsernames();
-      }).catch(function(error) {
-        showToast('Error claiming username: ' + error.message);
       });
     });
-  }).catch(function() {
-    showToast('Error checking username availability.');
+  }).then(function(newNumber) {
+    userHandles.push(username);
+    showToast('Claimed @' + username + ' with #' + newNumber + ' ✅');
+    renderUsernames();
+  }).catch(function(error) {
+    showToast('Error claiming username: ' + error.message);
   });
 }
 
