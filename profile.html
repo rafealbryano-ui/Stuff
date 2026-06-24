@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — mailserver.life</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d0d0d;font-family:'JetBrains Mono',monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+    .page{width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;gap:24px}
+    .card{width:100%;background:#131313;border:1px solid #222;border-radius:16px;overflow:hidden}
+    .card-top{padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center}
+    .card-badge{font-size:11px;color:#888;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;padding:3px 12px;margin-bottom:14px;letter-spacing:.02em}
+    .avatar-ring{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1a1a1a 55%,#333 80%,#555 100%);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 0 0 1px #333,0 0 20px rgba(255,255,255,0.06)}
+    .avatar-inner{width:78px;height:78px;border-radius:50%;background:#181818;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#e8e8e8;overflow:hidden}
+    .avatar-inner img{width:100%;height:100%;object-fit:cover}
+    .handle{font-size:16px;color:#e0e0e0;font-weight:500;letter-spacing:.01em;margin-bottom:4px}
+    .bio{font-size:12px;color:#888;margin:8px 0 14px;text-align:center;max-width:280px;line-height:1.5}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px}
+    .tag{font-size:11px;color:#e0e0e0;background:#222;border:1px solid #3a3a3a;border-radius:20px;padding:3px 10px;cursor:pointer;transition:background .15s}
+    .tag:hover{background:#2a2a2a}
+    .tag a{color:#e0e0e0;text-decoration:none}
+    .tag a:hover{color:#fff}
+    .card-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid #1c1c1c}
+    .footer-views{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
+    .footer-brand{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
+    .back-link{color:#555;font-size:12px;text-decoration:none;border:1px solid #2a2a2a;padding:6px 16px;border-radius:20px;transition:border .15s}
+    .back-link:hover{border-color:#555}
+    .error-msg{color:#888;font-size:14px;text-align:center;padding:40px 20px}
+    .loading-spinner{width:30px;height:30px;border:3px solid #222;border-top-color:#5b8ef0;border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:500px){.card-top{padding:16px 12px 14px}.avatar-ring{width:80px;height:80px}.avatar-inner{width:64px;height:64px;font-size:22px}}
+  </style>
+</head>
+<body>
+
+<div class="page" id="profilePage">
+  <div class="loading-spinner" id="loadingSpinner"></div>
+  <div id="content" style="display:none;width:100%"></div>
+</div>
+
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyC1xj2lQYZoiu7h-orFfGlOy2i54Y2BMdA",
+    authDomain: "mailserver-life.firebaseapp.com",
+    projectId: "mailserver-life",
+    storageBucket: "mailserver-life.firebasestorage.app",
+    messagingSenderId: "195734676668",
+    appId: "1:195734676668:web:40a868601cbaf8d473dcb9",
+    measurementId: "G-V216FC1QMD"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+
+  var D = 'mailserver.life';
+
+  function getUsernameFromPath() {
+    var path = window.location.pathname;
+    var parts = path.split('/').filter(function(p){ return p.length > 0; });
+    var last = parts[parts.length - 1] || '';
+    if (last.endsWith('.html')) {
+      last = last.slice(0, -5);
+    }
+    return last;
+  }
+
+  var username = getUsernameFromPath();
+
+  function showError(msg) {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    var content = document.getElementById('content');
+    content.style.display = 'block';
+    content.innerHTML = '<div class="error-msg">' + msg + '</div>';
+  }
+
+  function renderProfile(handleData, allHandles) {
+    var avatarUrl = handleData.avatarUrl || '';
+    var displayName = handleData.displayName || handleData.username;
+    var bio = handleData.bio || 'No bio yet.';
+    var userNumber = handleData.userNumber || 0;
+    var ownerUid = handleData.ownerUid;
+
+    var aliases = allHandles.filter(function(h) {
+      return h.ownerUid === ownerUid && h.username !== username;
+    });
+
+    var avatarHtml = '';
+    if (avatarUrl) {
+      avatarHtml = '<img src="' + avatarUrl + '" alt="' + displayName + '">';
+    } else {
+      var initial = displayName ? displayName[0].toUpperCase() : username[0].toUpperCase();
+      avatarHtml = initial;
+    }
+
+    var tagsHtml = '';
+    aliases.forEach(function(a) {
+      tagsHtml += '<span class="tag"><a href="/user/' + a.username + '">@' + a.username + '</a></span>';
+    });
+    if (tagsHtml === '') {
+      tagsHtml = '<span class="tag">No aliases</span>';
+    }
+
+    var mainHandle = '';
+    if (handleData.primaryHandle && handleData.primaryHandle !== username) {
+      mainHandle = handleData.primaryHandle;
+    }
+
+    var html = '';
+    html += '<div class="card">';
+    html += '  <div class="card-top">';
+    html += '    <div class="card-badge">#' + userNumber + ' · ' + D + '</div>';
+    html += '    <div class="avatar-ring">';
+    html += '      <div class="avatar-inner">' + avatarHtml + '</div>';
+    html += '    </div>';
+    html += '    <div class="handle">@' + username + '</div>';
+    if (mainHandle) {
+      html += '    <div style="font-size:11px;color:#555;margin-bottom:6px">(main: @' + mainHandle + ')</div>';
+    }
+    html += '    <div class="bio">' + bio + '</div>';
+    html += '    <div class="tags">' + tagsHtml + '</div>';
+    html += '  </div>';
+    html += '  <div class="card-footer">';
+    html += '    <span class="footer-views">' + aliases.length + ' aliases</span>';
+    html += '    <span class="footer-brand">' + D + '</span>';
+    html += '  </div>';
+    html += '</div>';
+
+    html += '<a href="/" class="back-link">← Back to home</a>';
+
+    document.getElementById('loadingSpinner').style.display = 'none';
+    var content = document.getElementById('content');
+    content.style.display = 'block';
+    content.innerHTML = html;
+  }
+
+  function loadProfile() {
+    if (!username) {
+      showError('No username specified.');
+      return;
+    }
+
+    db.collection('handles').doc(username).get()
+      .then(function(doc) {
+        if (!doc.exists) {
+          showError('User @' + username + ' not found.');
+          return;
+        }
+        var handleData = doc.data();
+        return db.collection('handles').where('ownerUid', '==', handleData.ownerUid).get()
+          .then(function(snapshot) {
+            var allHandles = [];
+            snapshot.forEach(function(d) {
+              allHandles.push(d.data());
+            });
+            allHandles.sort(function(a, b) {
+              return (a.userNumber || 0) - (b.userNumber || 0);
+            });
+            renderProfile(handleData, allHandles);
+          });
+      })
+      .catch(function(error) {
+        console.error('Error:', error);
+        showError('Error loading profile: ' + error.message);
+      });
+  }
+
+  loadProfile();
+</script>
+</body>
+</html>
