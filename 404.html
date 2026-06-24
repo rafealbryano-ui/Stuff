@@ -8,11 +8,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}html,body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
-#root{width:100%;max-width:500px;padding:20px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh}
+#root{max-width:500px;margin:0 auto;padding:40px 20px}
 .loading-spinner{width:30px;height:30px;border:3px solid #1a1a1a;border-top-color:#5b8ef0;border-radius:50%;animation:spin .8s linear infinite;margin:40px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-.profile-card{background:#131313;border:1px solid #222;border-radius:16px;overflow:hidden;width:100%}
+.profile-card{background:#131313;border:1px solid #222;border-radius:16px;overflow:hidden}
 .profile-top{padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center}
 .profile-badge{font-size:11px;color:#888;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:20px;padding:3px 12px;margin-bottom:14px;letter-spacing:.02em}
 .profile-avatar-ring{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1a1a1a 55%,#333 80%,#555 100%);display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 0 0 1px #333,0 0 20px rgba(255,255,255,0.06)}
@@ -26,13 +27,11 @@
 .profile-tag:hover{background:#2a2a2a}
 .profile-tag a{color:#e0e0e0;text-decoration:none;cursor:pointer}
 .profile-tag a:hover{color:#fff}
-.profile-footer{display:flex;align-items:center;justify-content:center;padding:10px 20px;border-top:1px solid #1c1c1c}
+.profile-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid #1c1c1c}
 .profile-footer span{font-size:10px;color:#444;letter-spacing:.08em;text-transform:uppercase}
 .profile-footer .views{color:#888;font-weight:500}
 .error-msg{color:#888;text-align:center;padding:60px 20px;font-size:14px}
 .error-msg a{color:#5b8ef0;text-decoration:none}
-.back-home{display:block;text-align:center;color:#555;font-size:12px;text-decoration:none;border:1px solid #2a2a2a;padding:6px 16px;border-radius:20px;transition:border .15s;margin-top:16px;width:fit-content;margin-left:auto;margin-right:auto}
-.back-home:hover{border-color:#555;color:#888}
 </style>
 </head>
 <body>
@@ -54,11 +53,8 @@ firebase.initializeApp(firebaseConfig);
 var db = firebase.firestore();
 
 var D = 'mailserver.life';
-var currentUsername = null;
 
-function getPath() {
-  return window.location.pathname;
-}
+function getPath() { return window.location.pathname; }
 
 function getUsernameFromPath(path) {
   if (path.startsWith('/user/')) {
@@ -70,12 +66,9 @@ function getUsernameFromPath(path) {
   return null;
 }
 
-function redirectTo(url) {
-  window.location.replace(url);
-}
-
-function navigateToHome() {
-  window.location.href = '/';
+function navigateTo(url) {
+  window.history.pushState({}, '', url);
+  handleRoute();
 }
 
 function renderProfile(container, handleData, allHandles) {
@@ -123,32 +116,9 @@ function renderProfile(container, handleData, allHandles) {
   html += '    <span class="views">' + views + ' VIEWS</span>';
   html += '  </div>';
   html += '</div>';
-  html += '<a href="#" class="back-home" onclick="navigateToHome();return false;">← Home</a>';
 
   container.innerHTML = html;
   document.title = '@' + username;
-}
-
-function navigateTo(url) {
-  window.history.pushState({}, '', url);
-  handleRoute();
-}
-
-function handleRoute() {
-  var path = getPath();
-  var root = document.getElementById('root');
-  
-  if (path.startsWith('/user/')) {
-    var username = getUsernameFromPath(path);
-    if (username) {
-      currentUsername = username;
-      loadProfile(username, root);
-      return;
-    }
-  }
-  
-  // If it's not a user profile, redirect to home
-  window.location.href = '/';
 }
 
 function loadProfile(username, container) {
@@ -185,68 +155,35 @@ function loadProfile(username, container) {
     });
 }
 
-function handleRedirects() {
+function handleRoute() {
   var path = getPath();
+  var root = document.getElementById('root');
   
-  // User profile routes – render directly
   if (path.startsWith('/user/')) {
     var username = getUsernameFromPath(path);
     if (username) {
-      currentUsername = username;
-      var root = document.getElementById('root');
       loadProfile(username, root);
       return;
     }
   }
   
-  // Known page routes – redirect to .html
-  var pageMap = {
-    '/': '/index.html',
-    '/dashboard': '/inbox.html',
-    '/inbox': '/inbox.html',
-    '/sent': '/sent.html',
-    '/tempmail': '/tempmail.html',
-    '/trash': '/trash.html',
-    '/files': '/files.html',
-    '/settings': '/settings.html',
-    '/login': '/login.html',
-    '/signup': '/signup.html',
-    '/forgot': '/forgot.html'
-  };
-  
-  if (pageMap[path] !== undefined) {
-    redirectTo(pageMap[path]);
-    return;
-  }
-  
-  // If path doesn't contain a dot, try appending .html
-  if (!path.includes('.') && path !== '/') {
-    redirectTo(path + '.html');
-    return;
-  }
-  
-  // Fallback: go home
-  redirectTo('/');
+  window.location.href = '/';
 }
 
-// Handle back/forward navigation
 window.addEventListener('popstate', function() {
   var path = getPath();
   if (path.startsWith('/user/')) {
     var username = getUsernameFromPath(path);
     if (username) {
-      currentUsername = username;
       var root = document.getElementById('root');
       loadProfile(username, root);
     }
   } else {
-    // If we're on a non-user page, redirect to home
     window.location.href = '/';
   }
 });
 
-// Start the router
-handleRedirects();
+handleRoute();
 </script>
 </body>
 </html>
