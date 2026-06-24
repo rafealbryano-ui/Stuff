@@ -247,7 +247,7 @@ function ensureMainHandleExists() {
       var data = {
         username: USERNAME,
         ownerUid: USER_UID,
-        userNumber: USER_ID,
+        userNumber: 1,
         displayName: userProfile.displayName || USERNAME,
         bio: userProfile.bio || '',
         avatarUrl: userProfile.avatarUrl || '',
@@ -668,13 +668,11 @@ function claimUsername() {
     return;
   }
   
-  var counterRef = db.collection('meta').doc('counter');
   var userRef = db.collection('users').doc(USER_UID);
   var handleRef = db.collection('handles').doc(username);
   var usernameRef = db.collection('usernames').doc(username);
   
   db.runTransaction(async function(transaction) {
-    const counterDoc = await transaction.get(counterRef);
     const handleDoc = await transaction.get(handleRef);
     const userDoc = await transaction.get(userRef);
     
@@ -693,14 +691,13 @@ function claimUsername() {
       throw new Error('You already own this username.');
     }
     
-    var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
-    var newNumber = current + 1;
+    var nextNumber = (userData.handleCounter || 0) + 1;
     handles.push(username);
     
     var handleData = {
       username: username,
       ownerUid: USER_UID,
-      userNumber: newNumber,
+      userNumber: nextNumber,
       displayName: userProfile.displayName || USERNAME,
       bio: userProfile.bio || '',
       avatarUrl: userProfile.avatarUrl || '',
@@ -708,12 +705,11 @@ function claimUsername() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
     transaction.set(handleRef, handleData);
     transaction.set(usernameRef, { uid: USER_UID });
-    transaction.update(userRef, { handles: handles });
+    transaction.update(userRef, { handles: handles, handleCounter: nextNumber });
     
-    return newNumber;
+    return nextNumber;
   }).then(function(newNumber) {
     userHandles.push(username);
     showToast('Claimed @' + username + ' with #' + newNumber + ' ✅');
@@ -780,7 +776,7 @@ function doLookup(){
   
   if (query.startsWith('#')) {
     var id = parseInt(query.replace('#', ''));
-    db.collection('handles').where('userNumber', '==', id).get()
+    db.collection('handles').where('userNumber', '==', id).where('ownerUid', '==', USER_UID).get()
       .then(function(snapshot) {
         if (snapshot.empty) {
           r.classList.add('show');
