@@ -613,11 +613,11 @@ function renderUsernames() {
 
     var count = handles.length;
     var aliasCount = handles.filter(function(h) { return h.username !== USERNAME; }).length;
-    var maxHandles = 15;
+    var maxAliases = 14;
     
     var html = '<div class="card">'+
       '<div class="card-title">Claim a Username</div>'+
-      '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage with its own global user number. You own ' + aliasCount + ' of ' + (maxHandles - 1) + '.</div>'+
+      '<div class="card-sub">Grab extra usernames for free — each becomes an alias biopage with its own global user number. You own ' + aliasCount + ' of ' + maxAliases + '.</div>'+
       '<div style="display:flex;gap:8px;margin-top:4px">'+
         '<div style="display:flex;align-items:center;background:#0e0e0e;border:1px solid var(--ms-border);border-radius:6px;overflow:hidden;flex:1">'+
           '<span style="padding:8px 10px;font-size:13px;color:var(--ms-muted);border-right:1px solid var(--ms-border);white-space:nowrap">' + D + '/</span>'+
@@ -625,7 +625,7 @@ function renderUsernames() {
         '</div>'+
         '<button class="btn btn-primary" onclick="claimUsername()">Claim</button>'+
       '</div>'+
-      '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max ' + (maxHandles - 1) + ' aliases</div>'+
+      '<div style="font-size:12px;color:var(--ms-muted);margin-top:6px">3-24 characters, letters/numbers/underscores · Max ' + maxAliases + ' aliases</div>'+
     '</div>'+
     '<div class="card">'+
       '<div class="card-title">Your Handles <span style="color:var(--ms-muted);font-weight:400">(' + count + ')</span></div>'+
