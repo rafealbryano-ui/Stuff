@@ -82,7 +82,7 @@
   </div>
 
   <div class="footer">
-    Already have an account? <a href="/login">Sign in</a>
+    Already have an account? <a href="/login.html">Sign in</a>
   </div>
 
   <script>
@@ -182,14 +182,22 @@
           if (methods && methods.length > 0) {
             throw new Error('This username was previously registered. Please choose another.');
           }
-          var counterRef = db.collection('meta').doc('counter');
-          return db.runTransaction(function(transaction) {
-            return transaction.get(counterRef).then(function(counterDoc) {
-              var current = counterDoc.exists ? counterDoc.data().currentUserNumber : 0;
-              var newNumber = current + 1;
-              transaction.set(counterRef, { currentUserNumber: newNumber }, { merge: true });
-              return newNumber;
+          return db.collection('handles').get().then(function(snapshot) {
+            var usedNumbers = [];
+            snapshot.forEach(function(doc) {
+              var num = doc.data().userNumber;
+              if (num) usedNumbers.push(num);
             });
+            usedNumbers.sort(function(a,b){return a-b;});
+            var nextNumber = 1;
+            for (var i = 0; i < usedNumbers.length; i++) {
+              if (usedNumbers[i] === nextNumber) {
+                nextNumber++;
+              } else if (usedNumbers[i] > nextNumber) {
+                break;
+              }
+            }
+            return nextNumber;
           });
         })
         .then(function(userNumber) {
@@ -234,7 +242,7 @@
                   saveCredentials(username, password);
                   sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
                   sessionStorage.removeItem('mailserver_claim');
-                  window.location.href = '/';
+                  window.location.href = '/inbox.html';
                 });
             });
         })
