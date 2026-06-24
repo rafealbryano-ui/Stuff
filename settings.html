@@ -765,7 +765,7 @@ function releaseHandle(username) {
     batch.delete(usernameRef);
     batch.update(userRef, { handles: userHandles });
 
-    return batch.commit().then(function() {
+    batch.commit().then(function() {
       return db.collection('handles').where('ownerUid', '==', USER_UID).get();
     }).then(function(snapshot) {
       var toUpdate = [];
@@ -784,10 +784,14 @@ function releaseHandle(username) {
       toUpdate.forEach(function(item) {
         updateBatch.update(item.ref, { userNumber: item.oldNum - 1 });
       });
-      return updateBatch.commit().then(function() {
+      updateBatch.commit().then(function() {
         showToast('Released @' + username + ' and renumbered handles.');
         renderUsernames();
+      }).catch(function(error) {
+        showToast('Error renumbering: ' + error.message);
       });
+    }).catch(function(error) {
+      showToast('Error during renumbering: ' + error.message);
     });
   }).catch(function(error) {
     showToast('Error releasing handle: ' + error.message);
