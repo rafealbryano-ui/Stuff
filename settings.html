@@ -66,12 +66,12 @@
     .input-show{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--ms-muted);cursor:pointer}
     .input-show:hover{color:var(--ms-text)}
     textarea{resize:vertical;min-height:80px}
-    .toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer}
-    .toggle{width:36px;height:20px;border-radius:10px;background:var(--ms-border);position:relative;transition:background .2s;flex-shrink:0}
+    .toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:6px}
+    .toggle{width:36px;height:20px;border-radius:10px;background:var(--ms-border);position:relative;transition:background .2s;flex-shrink:0;cursor:pointer}
     .toggle.on{background:var(--ms-accent)}
     .toggle::after{content:'';width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
     .toggle.on::after{left:18px}
-    .toggle-label{font-size:13px;color:var(--ms-text)}
+    .toggle-label{font-size:13px;color:var(--ms-text);cursor:pointer}
     .handle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ms-border)}
     .handle-row:last-child{border-bottom:none}
     .handle-name{font-family:var(--ms-mono);font-size:13px;color:var(--ms-text)}
@@ -79,7 +79,7 @@
     .badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#1a2a6e;color:var(--ms-accent);font-weight:500;margin-left:6px}
     .handle-actions{display:flex;gap:6px}
     .btn-sm{font-size:12px;padding:4px 10px;border-radius:5px}
-    .color-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+    .color-row{display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap}
     .color-swatch{width:28px;height:28px;border-radius:5px;border:1px solid var(--ms-border);cursor:pointer;flex-shrink:0}
     .slider-row{display:flex;align-items:center;gap:12px}
     .slider-row input[type=range]{flex:1;accent-color:var(--ms-accent)}
@@ -235,6 +235,7 @@ function loadUserData() {
       USER_ID = data.userNumber || 0;
       userProfile = data;
       userHandles = data.handles || [USERNAME];
+      if (!userProfile.settings) userProfile.settings = {};
       
       document.getElementById('userEmail').textContent = USER_EMAIL + ' · @' + USERNAME + ' · #' + USER_ID;
       
@@ -496,6 +497,7 @@ function renderBio() {
   var socials = userProfile.socials || {};
   var avatarInitial = displayName ? displayName[0].toUpperCase() : USERNAME[0].toUpperCase();
   var backgroundUrl = userProfile.backgroundUrl || '';
+  var settings = userProfile.settings || {};
   
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
     '<div>'+
@@ -519,12 +521,6 @@ function renderBio() {
       '</div>'+
       '<label>Display Name</label><input type="text" id="displayNameInput" value="' + displayName + '" placeholder="Display name">'+
       '<label>Bio</label><textarea id="bioInput" placeholder="Say something about yourself…">' + bio + '</textarea>'+
-      '<label>Profile Accent Color</label>'+
-      '<div class="color-row">'+
-        '<div class="color-swatch" style="background:' + accentColor + '" onclick="document.getElementById(\'colorPicker\').click()"></div>'+
-        '<input type="color" id="colorPicker" value="' + accentColor + '" style="width:60px;height:40px;padding:2px;cursor:pointer" onchange="updateColor(this.value)">'+
-        '<input type="text" id="colorValue" value="' + accentColor + '" style="width:100px">'+
-      '</div>'+
       '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="saveProfile()">Save Profile</button>'+
     '</div>'+
     '<div class="card">'+
@@ -542,6 +538,37 @@ function renderBio() {
         '</div>'+
       '</div>'+
       '<div style="font-size:12px;color:var(--ms-muted);margin-top:8px">Recommended: 1200x600px or larger.</div>'+
+    '</div>'+
+    '<div class="card">'+
+      '<div class="card-title">Glow & Colors</div>'+
+      '<div class="card-sub">Customize the appearance of your profile page.</div>'+
+      '<div class="toggle-row" style="margin-top:12px;">'+
+        '<div class="toggle ' + (settings.glowEnabled ? 'on' : '') + '" id="toggleGlowEnabled" onclick="toggleSetting(\'glowEnabled\')"></div>'+
+        '<span class="toggle-label">Enable glow effects</span>'+
+      '</div>'+
+      '<div id="glowSubOptions" style="' + (settings.glowEnabled ? '' : 'display:none;') + 'margin-top:8px;">'+
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;">'+
+          '<div class="toggle-row">'+
+            '<div class="toggle ' + (settings.glowGlow ? 'on' : '') + '" id="toggleGlowGlow" onclick="toggleSetting(\'glowGlow\')"></div>'+
+            '<span class="toggle-label" style="font-size:12px;">Glow</span>'+
+          '</div>'+
+          '<div class="toggle-row">'+
+            '<div class="toggle ' + (settings.glowText ? 'on' : '') + '" id="toggleGlowText" onclick="toggleSetting(\'glowText\')"></div>'+
+            '<span class="toggle-label" style="font-size:12px;">Text</span>'+
+          '</div>'+
+          '<div class="toggle-row">'+
+            '<div class="toggle ' + (settings.glowIcons ? 'on' : '') + '" id="toggleGlowIcons" onclick="toggleSetting(\'glowIcons\')"></div>'+
+            '<span class="toggle-label" style="font-size:12px;">Icons</span>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<label style="margin-top:16px;">Profile Accent Color</label>'+
+      '<div class="color-row">'+
+        '<div class="color-swatch" style="background:' + accentColor + '" onclick="document.getElementById(\'colorPicker\').click()"></div>'+
+        '<input type="color" id="colorPicker" value="' + accentColor + '" style="width:60px;height:40px;padding:2px;cursor:pointer" onchange="updateColor(this.value)">'+
+        '<input type="text" id="colorValue" value="' + accentColor + '" style="width:100px">'+
+        '<button class="btn btn-outline btn-sm" onclick="resetAccentColor()">Reset</button>'+
+      '</div>'+
     '</div>'+
     '<div class="card">'+
       '<div class="card-title">Bio Links</div>'+
@@ -678,6 +705,48 @@ function removeBackground() {
 function updateColor(color) {
   document.getElementById('colorValue').value = color;
   document.querySelector('.color-swatch').style.background = color;
+}
+
+function resetAccentColor() {
+  var defaultColor = '#000000';
+  document.getElementById('colorPicker').value = defaultColor;
+  document.getElementById('colorValue').value = defaultColor;
+  document.querySelector('.color-swatch').style.background = defaultColor;
+  
+  db.collection('users').doc(USER_UID).update({ accentColor: defaultColor })
+    .then(function() {
+      userProfile.accentColor = defaultColor;
+      syncProfileToHandles();
+      showToast('Accent color reset to default.');
+      renderTab('biopage');
+    })
+    .catch(function(error) {
+      showToast('Error resetting color: ' + error.message);
+    });
+}
+
+function toggleSetting(key) {
+  if (!userProfile.settings) userProfile.settings = {};
+  userProfile.settings[key] = !userProfile.settings[key];
+  
+  var toggleElement = document.getElementById('toggle' + key.charAt(0).toUpperCase() + key.slice(1));
+  if (toggleElement) {
+    toggleElement.classList.toggle('on', userProfile.settings[key]);
+  }
+  if (key === 'glowEnabled') {
+    var subOptions = document.getElementById('glowSubOptions');
+    if (subOptions) {
+      subOptions.style.display = userProfile.settings[key] ? 'block' : 'none';
+    }
+  }
+  
+  db.collection('users').doc(USER_UID).update({ settings: userProfile.settings })
+    .then(function() {
+      showToast('Settings updated!');
+    })
+    .catch(function(error) {
+      showToast('Error saving settings: ' + error.message);
+    });
 }
 
 function saveProfile() {
