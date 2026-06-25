@@ -25,7 +25,7 @@
 <div class="profile-bg-overlay" id="profileBgOverlay"></div>
 <div class="loading-overlay" id="loadingOverlay">
   <div class="loading-spinner"></div>
-  <div class="loading-text">Loading mailserver.life...</div>
+  <div class="loading-text" id="loadingText">Loading mailserver.life...</div>
 </div>
 <div id="root"></div>
 <script>
@@ -42,6 +42,13 @@ firebase.initializeApp(firebaseConfig);
 var auth = firebase.auth();
 var db = firebase.firestore();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+// Check if we're on a profile page and update loading text
+var initialPath = window.location.pathname;
+if (initialPath.startsWith('/user/')) {
+  var loadingTextEl = document.getElementById('loadingText');
+  if (loadingTextEl) loadingTextEl.textContent = 'Loading profile...';
+}
 
 var ENCRYPTION_KEY = 'LHKDATA_Center40104';
 var STORAGE_KEY = 'mailserver_data';
@@ -676,7 +683,6 @@ window.onpopstate = function() {
   handleRoute();
 };
 
-var initialPath = window.location.pathname;
 if (initialPath.startsWith('/user/')) {
   renderHome();
   handleRoute();
