@@ -139,6 +139,7 @@ function logout() {
 }
 
 var cachedUserCount = 0;
+var totalProfileViews = 0;
 
 function updateUserCount(count) {
   var userCount = count || 0;
@@ -149,8 +150,12 @@ function updateUserCount(count) {
   if (ucs) ucs.textContent = userCount;
   var dcs = document.getElementById('domainCountStat');
   if (dcs) dcs.textContent = 1;
+}
+
+function updateTotalViews(views) {
+  totalProfileViews = views || 0;
   var pvs = document.getElementById('profileViewsStat');
-  if (pvs) pvs.textContent = 0;
+  if (pvs) pvs.textContent = totalProfileViews;
 }
 
 function renderMemberCards() {
@@ -162,8 +167,10 @@ function renderMemberCards() {
   
   db.collection('handles').orderBy('userNumber', 'asc').get().then(function(snapshot) {
     var handles = [];
+    var totalViews = 0;
     snapshot.forEach(function(doc) {
       var data = doc.data();
+      totalViews += (data.views || 0);
       handles.push({
         username: data.username,
         displayName: data.displayName || data.username,
@@ -173,6 +180,7 @@ function renderMemberCards() {
         avatarUrl: data.avatarUrl || ''
       });
     });
+    updateTotalViews(totalViews);
 
     if (handles.length === 0) {
       track.innerHTML = '<div style="color:#444;font-size:13px;padding:20px;text-align:center;width:100%">No users yet. Be the first!</div>';
@@ -446,6 +454,11 @@ function renderHome() {
   }
   snapshotUnsubscribe = db.collection('handles').onSnapshot(function(snapshot) {
     var count = snapshot.size;
+    var totalViews = 0;
+    snapshot.forEach(function(doc) {
+      totalViews += (doc.data().views || 0);
+    });
+    updateTotalViews(totalViews);
     updateUserCount(count);
     if (!isRendering && !initialLoad) {
       debouncedRender();
