@@ -52,7 +52,6 @@ var snapshotUnsubscribe = null;
 var renderTimeout = null;
 var D = 'mailserver.life';
 var loggedInUser = null;
-var profileLoading = false;
 
 function getStorage() {
   try {
@@ -686,7 +685,6 @@ window.onpopstate = function() {
   handleRoute();
 };
 
-var isProfilePath = window.location.pathname.startsWith('/user/');
 renderHome();
 </script>
 </body>
