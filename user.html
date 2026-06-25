@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}html,body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;height:100%;min-height:100vh}nav{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:1px solid #1a1a1a;position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.95);backdrop-filter:blur(8px)}.nav-logo{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.3px;cursor:pointer;text-decoration:none}.nav-links{display:flex;gap:22px;align-items:center}.nav-link{font-size:13px;color:#777;cursor:pointer;text-decoration:none;transition:color 0.15s}.nav-link:hover{color:#e8e8e8}.nav-actions{display:flex;gap:8px;align-items:center}.btn-nav{font-size:13px;padding:7px 16px;border-radius:6px;cursor:pointer;font-weight:500;transition:all 0.15s;font-family:inherit}.btn-login{background:none;border:1px solid #2e2e2e;color:#bbb}.btn-login:hover{border-color:#555;color:#fff}.btn-signup{background:#fff;border:1px solid #fff;color:#000}.btn-signup:hover{background:#e0e0e0}.btn-dashboard{background:#5b8ef0;border:1px solid #5b8ef0;color:#fff}.btn-dashboard:hover{background:#4a7ad4}.btn-inbox{background:none;border:1px solid #2e2e2e;color:#bbb}.btn-inbox:hover{border-color:#555;color:#fff}.profile-container{display:flex;align-items:center;justify-content:center;padding:40px 20px;min-height:calc(100vh - 65px);position:relative;z-index:2}.profile-card{background:rgba(19,19,19,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden;max-width:500px;width:100%;position:relative;z-index:1;box-shadow:0 8px 40px rgba(0,0,0,0.6);transition:box-shadow 0.3s ease}.profile-number{position:absolute;top:14px;left:18px;font-size:12px;font-weight:600;color:#888;letter-spacing:.02em;z-index:2;background:rgba(0,0,0,0.5);padding:2px 10px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);transition:border-color 0.3s,color 0.3s,box-shadow 0.3s}.profile-top{padding:30px 20px 16px;display:flex;flex-direction:column;align-items:center;padding-top:44px}.profile-avatar-ring{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 0 0 1px rgba(255,255,255,0.06);transition:border-color 0.3s,box-shadow 0.3s;border:2px solid #000000}.profile-avatar-inner{width:78px;height:78px;border-radius:50%;background:#181818;display:flex;align-items:center;justify-content:center;overflow:hidden}.profile-handle{font-size:17px;color:#e8e8e8;font-weight:500;letter-spacing:.01em;margin-bottom:2px;transition:text-shadow 0.3s}.profile-bio{font-size:12px;color:#666;margin:4px 0 14px;text-align:center;max-width:280px;line-height:1.5}.profile-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px;transition:filter 0.3s}.profile-tag{font-size:11px;color:#e0e0e0;background:#222;border:1px solid #3a3a3a;border-radius:20px;padding:3px 10px;cursor:pointer;transition:background .15s}.profile-tag:hover{background:#2a2a2a}.profile-tag a{color:#e0e0e0;text-decoration:none}.profile-tag a:hover{color:#fff}.profile-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.04)}.profile-footer .views{color:#888;font-weight:500;font-size:10px;letter-spacing:.08em;text-transform:uppercase}.profile-footer .domain{color:#555;font-size:10px;letter-spacing:.08em;text-transform:uppercase}.profile-bg-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;display:none;background-color:#0a0a0a}.profile-bg-overlay.show{display:block}.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:opacity 0.5s}.loading-overlay.hidden{opacity:0;pointer-events:none}.loading-spinner{width:40px;height:40px;border:3px solid #1a1a1a;border-top-color:#5b8ef0;border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading-text{color:#666;font-size:14px;letter-spacing:1px}.toast{position:fixed;bottom:20px;right:20px;background:#1f1f2e;border:1px solid #5b8ef0;border-radius:8px;padding:12px 18px;font-size:13px;color:#e8e8e8;z-index:999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}@media(max-width:700px){.nav-links{display:none}nav{padding:14px 16px}.profile-container{padding:20px 12px}}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;height:100%;min-height:100vh;display:flex;align-items:center;justify-content:center}.profile-container{display:flex;align-items:center;justify-content:center;padding:40px 20px;width:100%;min-height:100vh;position:relative;z-index:2}.profile-card{background:rgba(19,19,19,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden;max-width:500px;width:100%;position:relative;z-index:1;box-shadow:0 8px 40px rgba(0,0,0,0.6);transition:box-shadow 0.3s ease}.profile-number{position:absolute;top:14px;left:18px;font-size:12px;font-weight:600;color:#e8e8e8;letter-spacing:.02em;z-index:2;background:rgba(0,0,0,0.5);padding:2px 10px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);transition:border-color 0.3s,color 0.3s,box-shadow 0.3s}.profile-top{padding:30px 20px 16px;display:flex;flex-direction:column;align-items:center;padding-top:44px}.profile-avatar-ring{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 0 0 1px rgba(255,255,255,0.06);transition:border-color 0.3s,box-shadow 0.3s;border:2px solid #000000}.profile-avatar-inner{width:78px;height:78px;border-radius:50%;background:#181818;display:flex;align-items:center;justify-content:center;overflow:hidden}.profile-handle{font-size:17px;color:#e8e8e8;font-weight:500;letter-spacing:.01em;margin-bottom:2px;transition:text-shadow 0.3s}.profile-bio{font-size:12px;color:#666;margin:4px 0 14px;text-align:center;max-width:280px;line-height:1.5}.profile-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:4px;transition:filter 0.3s}.profile-tag{font-size:11px;color:#e0e0e0;background:#222;border:1px solid #3a3a3a;border-radius:20px;padding:3px 10px;cursor:pointer;transition:background .15s}.profile-tag:hover{background:#2a2a2a}.profile-tag a{color:#e0e0e0;text-decoration:none}.profile-tag a:hover{color:#fff}.profile-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid rgba(255,255,255,0.04)}.profile-footer .views{color:#888;font-weight:500;font-size:10px;letter-spacing:.08em;text-transform:uppercase}.profile-footer .domain{color:#555;font-size:10px;letter-spacing:.08em;text-transform:uppercase}.profile-bg-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;display:none;background-color:#0a0a0a}.profile-bg-overlay.show{display:block}.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:opacity 0.5s}.loading-overlay.hidden{opacity:0;pointer-events:none}.loading-spinner{width:40px;height:40px;border:3px solid #1a1a1a;border-top-color:#5b8ef0;border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.loading-text{color:#666;font-size:14px;letter-spacing:1px}.toast{position:fixed;bottom:20px;right:20px;background:#1f1f2e;border:1px solid #5b8ef0;border-radius:8px;padding:12px 18px;font-size:13px;color:#e8e8e8;z-index:999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
@@ -46,29 +46,6 @@ function getSession() {
   }
 }
 
-function isLoggedIn() {
-  var s = getSession();
-  if (!s) return false;
-  return !!s.username;
-}
-
-function updateNav() {
-  var actions = document.getElementById('navActions');
-  var loggedIn = isLoggedIn();
-  if (loggedIn) {
-    actions.innerHTML = '<a href="/inbox" style="text-decoration:none;"><button class="btn-nav btn-dashboard">Dashboard</button></a><button class="btn-nav btn-inbox" onclick="logout()">Logout</button>';
-  } else {
-    actions.innerHTML = '<a href="/login" style="text-decoration:none;"><button class="btn-nav btn-login">Log in</button></a><a href="/signup" style="text-decoration:none;"><button class="btn-nav btn-signup">Sign up</button></a>';
-  }
-}
-
-function logout() {
-  auth.signOut().then(function() {
-    sessionStorage.removeItem('mailserver_session');
-    window.location.href = '/';
-  });
-}
-
 function showToast(msg) {
   var el = document.getElementById('toast-el');
   if (!el) {
@@ -81,13 +58,6 @@ function showToast(msg) {
   el.textContent = msg;
   el.classList.add('show');
   setTimeout(function() { el.classList.remove('show'); }, 3000);
-}
-
-function renderNav() {
-  var html = '';
-  html += '<nav><a href="/" class="nav-logo" style="text-decoration:none;">mailserver.life</a><div class="nav-links" id="navLinks"><a class="nav-link" href="/">Home</a><a class="nav-link" href="/inbox">Inbox</a><a class="nav-link" href="/settings">Settings</a></div><div class="nav-actions" id="navActions"></div></nav>';
-  document.getElementById('root').innerHTML = html;
-  updateNav();
 }
 
 function loadProfile(username) {
@@ -199,7 +169,7 @@ function renderProfile(container, handleData, allHandles, backgroundUrl, accentC
 
   var cardStyle = '';
   var ringStyle = 'border-color:' + accent + ';';
-  var numberStyle = 'border-color:' + accent + ';color:' + accent + ';';
+  var numberStyle = 'border-color:' + accent + ';color:#e8e8e8;';
   var handleStyle = '';
   var tagsStyle = '';
 
@@ -242,8 +212,6 @@ function renderProfile(container, handleData, allHandles, backgroundUrl, accentC
 }
 
 function init() {
-  renderNav();
-  
   var params = new URLSearchParams(window.location.search);
   var username = params.get('username');
   
@@ -273,19 +241,6 @@ function init() {
   
   loadProfile(username);
 }
-
-auth.onAuthStateChanged(function(user) {
-  if (user) {
-    var username = user.displayName || user.email.split('@')[0];
-    sessionStorage.setItem('mailserver_session', JSON.stringify({ username: username, loggedIn: true }));
-    loggedInUser = username;
-    updateNav();
-  } else {
-    sessionStorage.removeItem('mailserver_session');
-    loggedInUser = null;
-    updateNav();
-  }
-});
 
 init();
 </script>
