@@ -164,7 +164,6 @@
 <div class="toast" id="toast-el"></div>
 
 <script>
-// CLOUDINARY CONFIG - REPLACED WITH YOUR VALUES
 var CLOUDINARY_CLOUD_NAME = 'dtn74z09y';
 var CLOUDINARY_UPLOAD_PRESET = 'mailserver_avatar';
 
@@ -496,6 +495,7 @@ function renderBio() {
   var accentColor = userProfile.accentColor || '#4f7cff';
   var socials = userProfile.socials || {};
   var avatarInitial = displayName ? displayName[0].toUpperCase() : USERNAME[0].toUpperCase();
+  var backgroundUrl = userProfile.backgroundUrl || '';
   
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'+
     '<div>'+
@@ -528,6 +528,22 @@ function renderBio() {
       '<button class="btn btn-primary" style="margin-top:18px;width:100%" onclick="saveProfile()">Save Profile</button>'+
     '</div>'+
     '<div class="card">'+
+      '<div class="card-title">Background Image</div>'+
+      '<div class="card-sub">Upload a background for your public profile page (appears behind your card).</div>'+
+      '<div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--ms-border)">'+
+        '<div style="flex:1">'+
+          (backgroundUrl ? '<img src="' + backgroundUrl + '" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid var(--ms-border)">' : 
+            '<div style="background:#0e0e0e;border:1px solid var(--ms-border);border-radius:8px;padding:30px;text-align:center;color:var(--ms-muted);font-size:13px">No background set</div>') +
+        '</div>'+
+        '<div>'+
+          '<button class="btn btn-outline" onclick="document.getElementById(\'backgroundInput\').click()">' + (backgroundUrl ? 'Change' : 'Upload') + '</button>'+
+          (backgroundUrl ? '<button class="btn btn-danger" style="margin-top:8px;display:block" onclick="removeBackground()">Remove</button>' : '') +
+          '<input type="file" id="backgroundInput" accept="image/*" style="display:none" onchange="uploadBackground(event)">'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--ms-muted);margin-top:8px">Recommended: 1200x600px or larger.</div>'+
+    '</div>'+
+    '<div class="card">'+
       '<div class="card-title">Bio Links</div>'+
       '<div class="card-sub">Up to 5 links shown on your profile page.</div>'+
       '<div id="bioLinksContainer">'+
@@ -554,31 +570,6 @@ function renderBio() {
       '<label>YouTube</label><input type="text" id="socialYoutube" placeholder="https://youtube.com/..." value="' + (socials.youtube || '') + '">'+
       '<label>TikTok</label><input type="text" id="socialTiktok" placeholder="https://tiktok.com/..." value="' + (socials.tiktok || '') + '">'+
       '<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="saveSocials()">Save Socials</button>'+
-    '</div>'+
-    '</div>'+
-    '<div>'+
-    '<div style="position:sticky;top:16px">'+
-    '<div class="card">'+
-      '<div class="card-title" style="margin-bottom:12px">Preview</div>'+
-      '<div class="bio-preview-frame" style="border-color:' + accentColor + '">'+
-        (avatarUrl ? '<img src="' + avatarUrl + '" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:2px solid ' + accentColor + '">' :
-          '<div class="bio-avatar" style="background:' + accentColor + '20;color:' + accentColor + '">' + (displayName ? displayName[0].toUpperCase() : USERNAME[0].toUpperCase()) + '</div>') +
-        '<div class="bio-name" style="color:' + accentColor + '">' + displayName + '</div>'+
-        '<div class="bio-handle">@' + USERNAME + ' · ' + D + ' · #' + USER_ID + '</div>'+
-        '<div style="font-size:13px;color:var(--ms-muted);margin-top:8px;max-width:280px;margin-left:auto;margin-right:auto">' + (bio || 'No bio yet.') + '</div>'+
-        (userProfile.bioLinks && userProfile.bioLinks.length ? 
-          '<div class="bio-links">' + userProfile.bioLinks.map(function(link) {
-            return '<a href="' + link.url + '" target="_blank" class="bio-link-btn">' + link.title + '</a>';
-          }).join('') + '</div>' : '') +
-        '<div style="display:flex;justify-content:center;gap:16px;margin-top:20px">'+
-          (socials.discord ? '<a href="' + socials.discord + '" target="_blank"><i class="ti ti-brand-discord" style="font-size:20px;color:#5865f2"></i></a>' : '') +
-          (socials.x ? '<a href="' + socials.x + '" target="_blank"><i class="ti ti-brand-x" style="font-size:20px;color:#888"></i></a>' : '') +
-          (socials.instagram ? '<a href="' + socials.instagram + '" target="_blank"><i class="ti ti-brand-instagram" style="font-size:20px;color:#E4405F"></i></a>' : '') +
-          (socials.github ? '<a href="' + socials.github + '" target="_blank"><i class="ti ti-brand-github" style="font-size:20px;color:#888"></i></a>' : '') +
-          (socials.youtube ? '<a href="' + socials.youtube + '" target="_blank"><i class="ti ti-brand-youtube" style="font-size:20px;color:#FF0000"></i></a>' : '') +
-          (socials.tiktok ? '<a href="' + socials.tiktok + '" target="_blank"><i class="ti ti-brand-tiktok" style="font-size:20px;color:#000"></i></a>' : '') +
-        '</div>'+
-      '</div>'+
     '</div>'+
     '</div>'+
   '</div>';
@@ -626,6 +617,62 @@ function uploadAvatar(event) {
     showToast('Upload failed: ' + error.message);
     input.value = '';
   });
+}
+
+function uploadBackground(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  
+  var input = event.target;
+  showToast('Uploading background...');
+  
+  var formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  
+  var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload';
+  
+  fetch(url, {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    if (data.error) {
+      showToast('Upload failed: ' + data.error.message);
+      input.value = '';
+      return;
+    }
+    var downloadURL = data.secure_url;
+    db.collection('users').doc(USER_UID).update({ backgroundUrl: downloadURL })
+      .then(function() {
+        userProfile.backgroundUrl = downloadURL;
+        showToast('Background uploaded successfully! ✅');
+        input.value = '';
+        renderTab('biopage');
+      })
+      .catch(function(error) {
+        showToast('Error saving background URL: ' + error.message);
+        input.value = '';
+      });
+  })
+  .catch(function(error) {
+    showToast('Upload failed: ' + error.message);
+    input.value = '';
+  });
+}
+
+function removeBackground() {
+  if (!confirm('Remove your profile background?')) return;
+  db.collection('users').doc(USER_UID).update({ backgroundUrl: '' })
+    .then(function() {
+      userProfile.backgroundUrl = '';
+      showToast('Background removed.');
+      renderTab('biopage');
+    })
+    .catch(function(error) {
+      showToast('Error: ' + error.message);
+    });
 }
 
 function updateColor(color) {
